@@ -230,4 +230,424 @@
         <div class="list-total" id="selectedDateTotal">0원</div>
       </div>
       <div class="filter-row">
-        <button type
+        <button type="button" class="chip active" data-author="ALL">전체</button>
+        <button type="button" class="chip" data-author="나">나</button>
+        <button type="button" class="chip" data-author="배우자">배우자</button>
+      </div>
+      <div id="expenseList"></div>
+      <div class="status" id="statusMsg"></div>
+    </div>
+  </div>
+
+  <button type="button" class="fab-add" id="openAddBtn" aria-label="지출 추가">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  </button>
+
+  <div class="modal-backdrop" id="addModal">
+    <div class="modal-sheet">
+      <div class="modal-title">지출 추가 (<span id="formDateText"></span>)</div>
+      <div class="form-grid">
+        <div>
+          <select id="author">
+            <option value="나">작성자: 나</option>
+            <option value="배우자">작성자: 배우자</option>
+          </select>
+        </div>
+        <div>
+          <select id="category">
+            <option value="식비">식비</option>
+            <option value="보험">보험</option>
+            <option value="카페">카페</option>
+            <option value="교통">교통</option>
+            <option value="회비">회비</option>
+            <option value="쇼핑">쇼핑</option>
+            <option value="통신">통신</option>
+            <option value="생필품">생필품</option>
+            <option value="관리비">관리비</option>
+            <option value="구독서비스">구독서비스</option>
+            <option value="마트">마트</option>
+            <option value="문화">문화</option>
+            <option value="건강">건강</option>
+          </select>
+        </div>
+        <div>
+          <input type="text" id="merchant" placeholder="사용처 (예: 마트)" />
+        </div>
+        <div>
+          <input type="number" id="amount" placeholder="금액 (원)" inputmode="numeric" />
+        </div>
+        <div class="full">
+          <select id="payment">
+            <option value="카드">결제수단: 카드</option>
+            <option value="체크카드">결제수단: 체크카드</option>
+            <option value="계좌이체">결제수단: 계좌이체</option>
+            <option value="현금">결제수단: 현금</option>
+            <option value="기타">결제수단: 기타</option>
+          </select>
+        </div>
+        <div class="full">
+          <input type="text" id="memo" placeholder="메모 (선택)" />
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary" id="saveBtn">저장하기</button>
+      <button type="button" class="btn btn-ghost" style="margin-top:8px;" id="closeAddBtn">닫기</button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="editModal">
+    <div class="modal-sheet">
+      <div class="modal-title">내역 수정 / 삭제</div>
+      <input type="hidden" id="editId" />
+      <div class="form-grid">
+        <div>
+          <input type="date" id="editDate" />
+        </div>
+        <div>
+          <select id="editAuthor">
+            <option value="나">나</option>
+            <option value="배우자">배우자</option>
+          </select>
+        </div>
+        <div>
+          <select id="editCategory">
+            <option value="식비">식비</option>
+            <option value="보험">보험</option>
+            <option value="카페">카페</option>
+            <option value="교통">교통</option>
+            <option value="회비">회비</option>
+            <option value="쇼핑">쇼핑</option>
+            <option value="통신">통신</option>
+            <option value="생필품">생필품</option>
+            <option value="관리비">관리비</option>
+            <option value="구독서비스">구독서비스</option>
+            <option value="마트">마트</option>
+            <option value="문화">문화</option>
+            <option value="건강">건강</option>
+          </select>
+        </div>
+        <div>
+          <input type="number" id="editAmount" inputmode="numeric" placeholder="금액" />
+        </div>
+        <div>
+          <input type="text" id="editMerchant" placeholder="사용처" />
+        </div>
+        <div>
+          <select id="editPayment">
+            <option value="카드">카드</option>
+            <option value="체크카드">체크카드</option>
+            <option value="계좌이체">계좌이체</option>
+            <option value="현금">현금</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="full">
+          <input type="text" id="editMemo" placeholder="메모" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="deleteItemBtn">삭제</button>
+        <button type="button" class="btn btn-primary" style="margin-top:0;" id="updateItemBtn">수정 저장</button>
+      </div>
+      <button type="button" class="btn btn-ghost" style="margin-top:8px;" id="closeModalBtn">닫기</button>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzQHw2S8p9mXDnnxRcdtbNOZTawJv66xw3RB82f2km96nCfgVze0xAU8uMknbf4u6Gd8g/exec';
+
+    let expenses = [];
+    let authorFilter = 'ALL';
+    const todayStr = formatYMD(new Date());
+    let viewYear = Number(todayStr.slice(0, 4));
+    let viewMonth = Number(todayStr.slice(5, 7)) - 1;
+    let selectedDate = todayStr;
+
+    function formatYMD(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function formatShortAmount(n) {
+      if (!n) return '';
+      if (n >= 10000) return `${(n / 10000).toFixed(n % 10000 === 0 ? 0 : 1)}만`;
+      return `${n.toLocaleString()}`;
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function setStatus(msg) {
+      document.getElementById('statusMsg').textContent = msg || '';
+    }
+
+    async function apiGetList() {
+      const res = await fetch(`${API_URL}?action=list`);
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || '조회 실패');
+      return json.data || [];
+    }
+
+    async function apiPost(payload) {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || '처리 실패');
+      return json.data;
+    }
+
+    function renderCalendar() {
+      const monthLabel = document.getElementById('monthLabel');
+      const daysEl = document.getElementById('calendarDays');
+      monthLabel.textContent = `${viewYear}년 ${viewMonth + 1}월`;
+      daysEl.innerHTML = '';
+
+      const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+      const lastDate = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+      const dailySum = {};
+      expenses.forEach(e => {
+        if (!e.date) return;
+        if (authorFilter !== 'ALL' && e.author !== authorFilter) return;
+        dailySum[e.date] = (dailySum[e.date] || 0) + Number(e.amount || 0);
+      });
+
+      for (let i = 0; i < firstDay; i++) {
+        const blank = document.createElement('div');
+        blank.className = 'day-btn muted';
+        daysEl.appendChild(blank);
+      }
+
+      for (let d = 1; d <= lastDate; d++) {
+        const ymd = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        let cls = 'day-btn';
+        if (ymd === todayStr) cls += ' today';
+        if (ymd === selectedDate) cls += ' selected';
+        btn.className = cls;
+
+        const sumText = dailySum[ymd] ? `-${formatShortAmount(dailySum[ymd])}` : '';
+        btn.innerHTML = `<span class="day-num">${d}</span><span class="day-sum">${sumText}</span>`;
+        btn.onclick = () => {
+          selectedDate = ymd;
+          renderCalendar();
+          renderList();
+          updateFormDate();
+        };
+        daysEl.appendChild(btn);
+      }
+    }
+
+    function renderList() {
+      const labelEl = document.getElementById('selectedDateLabel');
+      const totalEl = document.getElementById('selectedDateTotal');
+      const listEl = document.getElementById('expenseList');
+
+      labelEl.textContent = `${selectedDate} 지출`;
+      const dayItems = expenses.filter(e => {
+        if (e.date !== selectedDate) return false;
+        if (authorFilter !== 'ALL' && e.author !== authorFilter) return false;
+        return true;
+      });
+
+      const total = dayItems.reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
+      totalEl.textContent = `${total.toLocaleString()}원`;
+
+      if (dayItems.length === 0) {
+        listEl.innerHTML = '<div class="empty">표시할 지출 내역이 없습니다.</div>';
+        return;
+      }
+
+      listEl.innerHTML = dayItems.map(item => `
+        <div class="item" data-id="${escapeHtml(item.id)}">
+          <div>
+            <div class="item-main">[${escapeHtml(item.category)}] ${escapeHtml(item.merchant || '내역 없음')}</div>
+            <div class="item-sub">${escapeHtml(item.author)} · ${escapeHtml(item.payment || '카드')}${item.memo ? ' · ' + escapeHtml(item.memo) : ''}</div>
+          </div>
+          <div class="item-amt">-${Number(item.amount || 0).toLocaleString()}원</div>
+        </div>
+      `).join('');
+
+      listEl.querySelectorAll('.item').forEach(el => {
+        el.onclick = () => openEditModal(el.getAttribute('data-id'));
+      });
+    }
+
+    function updateFormDate() {
+      document.getElementById('formDateText').textContent = selectedDate;
+    }
+
+    function openAddModal() {
+      updateFormDate();
+      document.getElementById('addModal').classList.add('open');
+    }
+
+    function closeAddModal() {
+      document.getElementById('addModal').classList.remove('open');
+    }
+
+    function openEditModal(id) {
+      const target = expenses.find(e => String(e.id) === String(id));
+      if (!target) return;
+      document.getElementById('editId').value = target.id;
+      document.getElementById('editDate').value = target.date;
+      document.getElementById('editAuthor').value = target.author;
+      document.getElementById('editCategory').value = target.category;
+      document.getElementById('editMerchant').value = target.merchant;
+      document.getElementById('editAmount').value = target.amount;
+      document.getElementById('editPayment').value = target.payment || '카드';
+      document.getElementById('editMemo').value = target.memo;
+      document.getElementById('editModal').classList.add('open');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('open');
+    }
+
+    document.getElementById('openAddBtn').onclick = openAddModal;
+    document.getElementById('closeAddBtn').onclick = closeAddModal;
+
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.onclick = () => {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        authorFilter = chip.getAttribute('data-author');
+        renderCalendar();
+        renderList();
+      };
+    });
+
+    document.getElementById('todayBtn').onclick = () => {
+      selectedDate = todayStr;
+      viewYear = Number(todayStr.slice(0, 4));
+      viewMonth = Number(todayStr.slice(5, 7)) - 1;
+      renderCalendar();
+      renderList();
+      updateFormDate();
+    };
+
+    document.getElementById('prevMonth').onclick = () => {
+      viewMonth--;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      renderCalendar();
+    };
+
+    document.getElementById('nextMonth').onclick = () => {
+      viewMonth++;
+      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      renderCalendar();
+    };
+
+    document.getElementById('saveBtn').onclick = async () => {
+      const merchant = document.getElementById('merchant').value.trim();
+      const amount = Number(document.getElementById('amount').value);
+      if (!amount || amount <= 0) {
+        setStatus('금액을 1원 이상 입력해 주세요.');
+        return;
+      }
+
+      const item = {
+        date: selectedDate,
+        author: document.getElementById('author').value,
+        category: document.getElementById('category').value,
+        merchant,
+        amount,
+        payment: document.getElementById('payment').value,
+        memo: document.getElementById('memo').value.trim()
+      };
+
+      closeAddModal();
+      setStatus('저장 중...');
+      try {
+        const saved = await apiPost({ action: 'add', item });
+        expenses.push(saved);
+        document.getElementById('merchant').value = '';
+        document.getElementById('amount').value = '';
+        document.getElementById('memo').value = '';
+        setStatus('저장 완료');
+        renderCalendar();
+        renderList();
+      } catch (err) {
+        setStatus('저장 실패: ' + err.message);
+      }
+    };
+
+    document.getElementById('updateItemBtn').onclick = async () => {
+      const id = document.getElementById('editId').value;
+      const amount = Number(document.getElementById('editAmount').value);
+      if (!amount || amount <= 0) {
+        setStatus('금액을 1원 이상 입력해 주세요.');
+        return;
+      }
+
+      const item = {
+        id,
+        date: document.getElementById('editDate').value,
+        author: document.getElementById('editAuthor').value,
+        category: document.getElementById('editCategory').value,
+        merchant: document.getElementById('editMerchant').value.trim(),
+        amount,
+        payment: document.getElementById('editPayment').value,
+        memo: document.getElementById('editMemo').value.trim()
+      };
+
+      closeEditModal();
+      setStatus('수정 중...');
+      try {
+        const updated = await apiPost({ action: 'update', item });
+        expenses = expenses.map(e => String(e.id) === String(updated.id) ? updated : e);
+        selectedDate = updated.date;
+        viewYear = Number(updated.date.slice(0, 4));
+        viewMonth = Number(updated.date.slice(5, 7)) - 1;
+        setStatus('수정 완료');
+        renderCalendar();
+        renderList();
+        updateFormDate();
+      } catch (err) {
+        setStatus('수정 실패: ' + err.message);
+      }
+    };
+
+    document.getElementById('deleteItemBtn').onclick = async () => {
+      const id = document.getElementById('editId').value;
+      closeEditModal();
+      setStatus('삭제 중...');
+      try {
+        const res = await apiPost({ action: 'delete', id });
+        expenses = expenses.filter(e => String(e.id) !== String(res.deletedId));
+        setStatus('삭제 완료');
+        renderCalendar();
+        renderList();
+      } catch (err) {
+        setStatus('삭제 실패: ' + err.message);
+      }
+    };
+
+    document.getElementById('closeModalBtn').onclick = closeEditModal;
+
+    renderCalendar();
+    renderList();
+    updateFormDate();
+    setStatus('데이터 불러오는 중...');
+    apiGetList()
+      .then(rows => {
+        expenses = rows;
+        setStatus('');
+        renderCalendar();
+        renderList();
+      })
+      .catch(err => setStatus('불러오기 실패: ' + err.message));
+  </script>
+</body>
+</html>
