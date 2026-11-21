@@ -151,7 +151,9 @@
     .noti-item { display:flex; justify-content:space-between; align-items:center; padding:11px 12px; border-top:1px solid #f0f0f3; cursor:pointer; background:#fff; }
     .noti-item:first-child { border-top:none; }
     .noti-item:active { background:#fafafa; }
-    .noti-meta { font-size:11px; color:var(--sub); margin-bottom:2px; }
+    .noti-item.unread { background:var(--accent-soft); }
+    .noti-meta { font-size:11px; color:var(--sub); margin-bottom:2px; display:flex; align-items:center; gap:5px; }
+    .noti-new-dot { width:6px; height:6px; border-radius:999px; background:var(--accent); display:inline-block; }
     .noti-title { font-size:13.5px; font-weight:600; }
   </style>
 </head>
@@ -349,7 +351,7 @@
 
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbyQ6su6NP0pMvRnvsy37fHlZbOs6VVdkgWzjLNRsB2u1ur6OLkjQcGed_cH5fbn6RYu2g/exec';
-    const NOTI_SEEN_KEY = 'couple_ledger_noti_seen_count_v1';
+    const NOTI_SEEN_IDS_KEY = 'couple_ledger_noti_seen_ids_v2';
 
     let expenses = [];
     let categories = ['식비','보험','카페','교통','회비','쇼핑','통신','생필품','관리비','구독서비스','마트','문화','건강'];
@@ -368,12 +370,79 @@
     let settleMode = 'category';
     let selectedSettleKey = null;
 
-    let seenTotalCount = Number(localStorage.getItem(NOTI_SEEN_KEY) || '0');
+    // 확인 완료된 내역 ID 집합 및 현재 알림 모달 오픈 시점의 미확인 ID 기록
+    let seenIdSet = loadSeenIdSet();
+    let currentUnreadSnapshot = new Set();
 
     const todayStr = formatYMD(new Date());
     let viewYear = Number(todayStr.slice(0, 4));
     let viewMonth = Number(todayStr.slice(5, 7)) - 1;
     let selectedDate = todayStr;
+
+    function loadSeenIdSet() {
+      try {
+        const raw = localStorage.getItem(NOTI_SEEN_IDS_KEY);
+        if (!raw) return null; // 최초 접속 구분용
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? new Set(arr.map(String)) : new Set();
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    function saveSeenIdSet() {
+      try {
+        if (!seenIdSet) seenIdSet = new Set();
+        // 저장 용량 관리를 위해 최근 500개 ID만 유지
+        const arr = Array.from(seenIdSet);
+        const trimmed = arr.length > 500 ? arr.slice(arr.length - 500) : arr;
+        seenIdSet = new Set(trimmed);
+        localStorage.setItem(NOTI_SEEN_IDS_KEY, JSON.stringify(trimmed));
+      } catch (e) {}
+    }
+
+    function markItemIdAsSeen(id) {
+      if (id === undefined || id === null || id === '') return;
+      if (!seenIdSet) seenIdSet = new Set();
+      seenIdSet.add(String(id));
+      saveSeenIdSet();
+      updateNotiBadge();
+    }
+
+    function removeDeletedIdFromSeen(id) {
+      if (!seenIdSet || id === undefined || id === null) return;
+      if (seenIdSet.delete(String(id))) {
+        saveSeenIdSet();
+      }
+    }
+
+    function getUnreadExpenses() {
+      if (!seenIdSet) return [];
+      return expenses.filter(e => e.id !== undefined && e.id !== null && !seenIdSet.has(String(e.id)));
+    }
+
+    function updateNotiBadge() {
+      const badge = document.getElementById('notiBadge');
+      const unreadCount = getUnreadExpenses().length;
+      if (unreadCount > 0) {
+        badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+        badge.classList.add('show');
+      } else {
+        badge.textContent = '';
+        badge.classList.remove('show');
+      }
+    }
+
+    function markAllCurrentAsRead() {
+      if (!seenIdSet) seenIdSet = new Set();
+      expenses.forEach(e => {
+        if (e.id !== undefined && e.id !== null) {
+          seenIdSet.add(String(e.id));
+        }
+      });
+      saveSeenIdSet();
+      updateNotiBadge();
+    }
 
     function formatYMD(d) {
       const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
@@ -422,31 +491,6 @@
       return cleanSub?`${cleanGrp} > ${cleanSub}`:cleanGrp;
     }
     function setStatus(msg) { document.getElementById('statusMsg').textContent=msg||''; }
-
-    function syncSeenCountAfterDelete() {
-      if (seenTotalCount > expenses.length) {
-        seenTotalCount = expenses.length;
-        localStorage.setItem(NOTI_SEEN_KEY, String(seenTotalCount));
-      }
-    }
-
-    function updateNotiBadge() {
-      const badge = document.getElementById('notiBadge');
-      const unread = Math.max(0, expenses.length - seenTotalCount);
-      if (unread > 0) {
-        badge.textContent = unread > 99 ? '99+' : String(unread);
-        badge.classList.add('show');
-      } else {
-        badge.textContent = '';
-        badge.classList.remove('show');
-      }
-    }
-
-    function markNotificationsAsRead() {
-      seenTotalCount = expenses.length;
-      localStorage.setItem(NOTI_SEEN_KEY, String(seenTotalCount));
-      updateNotiBadge();
-    }
 
     function fillSubSelect(selectEl,grp,selectedSub) {
       const list=(paymentGroups[grp]||[]).slice();
@@ -718,7 +762,7 @@
         .reverse()
         .slice(0, 10);
 
-      countLabel.textContent = recentList.length > 0 ? `${recentList.length}개` : '';
+      countLabel.textContent = recentList.length > 0 ? `최근 ${recentList.length}개` : '';
 
       if (recentList.length === 0) {
         container.innerHTML = '<div class="empty">등록된 이력이 없습니다.</div>';
@@ -730,9 +774,10 @@
         const sign = isInc ? '+' : '-';
         const cls = isInc ? 'inc' : 'exp';
         const typeLabel = isInc ? '수입 등록' : '지출 등록';
-        return `<div class="noti-item" data-id="${escapeHtml(item.id)}">
+        const isUnread = currentUnreadSnapshot.has(String(item.id));
+        return `<div class="noti-item ${isUnread ? 'unread' : ''}" data-id="${escapeHtml(item.id)}">
           <div>
-            <div class="noti-meta">${escapeHtml(item.author)} · ${typeLabel} · 거래일 ${escapeHtml(item.date)}</div>
+            <div class="noti-meta">${isUnread ? '<span class="noti-new-dot"></span>' : ''}${escapeHtml(item.author)} · ${typeLabel} · 거래일 ${escapeHtml(item.date)}</div>
             <div class="noti-title">[${escapeHtml(item.category)}] ${escapeHtml(item.merchant || (isInc?'수입 내역':'내역 없음'))}</div>
             <div class="item-sub">${escapeHtml(item.payment || '')}${item.memo ? ' · '+escapeHtml(item.memo) : ''}</div>
           </div>
@@ -750,11 +795,14 @@
     }
 
     function openNotiModal() {
-      markNotificationsAsRead();
+      // 모달을 여는 순간의 미확인 ID를 스냅샷으로 저장해 새 항목 강조 표시 후 읽음 처리
+      currentUnreadSnapshot = new Set(getUnreadExpenses().map(e => String(e.id)));
+      markAllCurrentAsRead();
       renderNotifications();
       document.getElementById('notiModal').classList.add('open');
     }
     function closeNotiModal() {
+      currentUnreadSnapshot.clear();
       document.getElementById('notiModal').classList.remove('open');
     }
 
@@ -1063,7 +1111,12 @@
       setStatus('저장 중...');
       try{
         const saved=await apiPost({action:'add',item});
-        expenses.push({...saved, type: saved.type || addEntryType, author:normalizeAuthor(saved.author)});
+        const normalizedSaved = {...saved, type: saved.type || addEntryType, author:normalizeAuthor(saved.author)};
+        expenses.push(normalizedSaved);
+
+        // 본인이 직접 등록한 내역 ID만 확인 처리하여 알림 뱃지 미표시
+        markItemIdAsSeen(normalizedSaved.id);
+
         document.getElementById('merchant').value='';
         document.getElementById('amount').value='';
         document.getElementById('memo').value='';
@@ -1112,7 +1165,7 @@
       try{
         const res=await apiPost({action:'delete',id});
         expenses=expenses.filter(e=>String(e.id)!==String(res.deletedId));
-        syncSeenCountAfterDelete();
+        removeDeletedIdFromSeen(res.deletedId);
         setStatus('삭제 완료');
         renderCalendar();
         renderList();
@@ -1136,7 +1189,12 @@
         renderSelectOptions();
       }
       expenses=rows.map(row=>({...row, author:normalizeAuthor(row.author)}));
-      syncSeenCountAfterDelete();
+
+      // v2 최초 접속 시 기존 내역은 모두 읽음으로 초기화
+      if (seenIdSet === null) {
+        markAllCurrentAsRead();
+      }
+
       setStatus('');
       renderCalendar();
       renderList();
