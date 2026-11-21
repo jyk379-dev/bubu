@@ -108,7 +108,13 @@
         <div><select id="category"></select></div>
         <div><input type="text" id="merchant" placeholder="사용처 (예: 마트)" /></div>
         <div><input type="number" id="amount" placeholder="금액 (원)" inputmode="numeric" /></div>
-        <div class="full"><select id="payment"></select></div>
+        <div>
+          <select id="paymentGroup">
+            <option value="카드">결제: 카드</option>
+            <option value="현금">결제: 현금</option>
+          </select>
+        </div>
+        <div><select id="paymentSub"></select></div>
         <div class="full"><input type="text" id="memo" placeholder="메모 (선택)" /></div>
       </div>
       <button type="button" class="btn btn-primary" id="saveBtn">저장하기</button>
@@ -130,8 +136,14 @@
         </div>
         <div><select id="editCategory"></select></div>
         <div><input type="number" id="editAmount" inputmode="numeric" placeholder="금액" /></div>
-        <div><input type="text" id="editMerchant" placeholder="사용처" /></div>
-        <div><select id="editPayment"></select></div>
+        <div>
+          <select id="editPaymentGroup">
+            <option value="카드">카드</option>
+            <option value="현금">현금</option>
+          </select>
+        </div>
+        <div><select id="editPaymentSub"></select></div>
+        <div class="full"><input type="text" id="editMerchant" placeholder="사용처" /></div>
         <div class="full"><input type="text" id="editMemo" placeholder="메모" /></div>
       </div>
       <div class="modal-actions">
@@ -144,7 +156,7 @@
 
   <div class="modal-backdrop" id="settingsModal">
     <div class="modal-sheet">
-      <div class="modal-title">카테고리 · 결제수단 설정 (시트 공용 저장)</div>
+      <div class="modal-title">카테고리 · 2단계 결제수단 설정</div>
       <div class="setting-sec">
         <div class="setting-sec-title">카테고리</div>
         <div class="tag-list" id="settingCategoryTags"></div>
@@ -154,11 +166,19 @@
         </div>
       </div>
       <div class="setting-sec">
-        <div class="setting-sec-title">결제수단</div>
-        <div class="tag-list" id="settingPaymentTags"></div>
+        <div class="setting-sec-title">카드 세부 수단 (카드 &gt; ...)</div>
+        <div class="tag-list" id="settingCardTags"></div>
         <div class="add-inline">
-          <input type="text" id="newPaymentInput" placeholder="새 결제수단 (예: 우리카드)" />
-          <button type="button" id="addPaymentTagBtn">추가</button>
+          <input type="text" id="newCardInput" placeholder="예: 우리카드, 현대카드" />
+          <button type="button" id="addCardTagBtn">추가</button>
+        </div>
+      </div>
+      <div class="setting-sec">
+        <div class="setting-sec-title">현금 세부 수단 (현금 &gt; ...)</div>
+        <div class="tag-list" id="settingCashTags"></div>
+        <div class="add-inline">
+          <input type="text" id="newCashInput" placeholder="예: 농협체크, 현금직접" />
+          <button type="button" id="addCashTagBtn">추가</button>
         </div>
       </div>
       <button type="button" class="btn btn-primary" id="saveSettingsBtn">설정 저장</button>
@@ -171,9 +191,10 @@
 
     let expenses = [];
     let categories = ['식비','보험','카페','교통','회비','쇼핑','통신','생필품','관리비','구독서비스','마트','문화','건강'];
-    let payments = ['카드','체크카드','계좌이체','현금','기타'];
+    let paymentGroups = { '카드': ['우리카드'], '현금': ['농협체크'] };
     let draftCategories = [];
-    let draftPayments = [];
+    let draftCardList = [];
+    let draftCashList = [];
     let authorFilter = 'ALL';
 
     const todayStr = formatYMD(new Date());
@@ -204,19 +225,55 @@
       return author;
     }
 
+    function parsePaymentString(payStr) {
+      const raw = String(payStr || '').trim();
+      if (raw.includes('>')) {
+        const parts = raw.split('>');
+        const grp = parts[0].trim() === '현금' ? '현금' : '카드';
+        const sub = parts.slice(1).join('>').trim();
+        return { group: grp, sub: sub || '' };
+      }
+      if (raw === '현금' || raw === '계좌이체') {
+        return { group: '현금', sub: raw };
+      }
+      return { group: '카드', sub: raw || '' };
+    }
+
+    function formatPaymentLabel(grp, sub) {
+      const cleanGrp = grp === '현금' ? '현금' : '카드';
+      const cleanSub = String(sub || '').trim();
+      return cleanSub ? `${cleanGrp} > ${cleanSub}` : cleanGrp;
+    }
+
     function setStatus(msg) {
       document.getElementById('statusMsg').textContent = msg || '';
     }
 
+    function fillSubSelect(selectEl, grp, selectedSub) {
+      const list = (paymentGroups[grp] || []).slice();
+      if (selectedSub && !list.includes(selectedSub)) {
+        list.unshift(selectedSub);
+      }
+      if (list.length === 0) {
+        selectEl.innerHTML = '<option value="">세부 수단 없음</option>';
+        return;
+      }
+      selectEl.innerHTML = list.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+      if (selectedSub) {
+        selectEl.value = selectedSub;
+      }
+    }
+
     function renderSelectOptions() {
       const catHtml = categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-      const payAddHtml = payments.map(p => `<option value="${escapeHtml(p)}">결제수단: ${escapeHtml(p)}</option>`).join('');
-      const payEditHtml = payments.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
-
       document.getElementById('category').innerHTML = catHtml;
       document.getElementById('editCategory').innerHTML = catHtml;
-      document.getElementById('payment').innerHTML = payAddHtml;
-      document.getElementById('editPayment').innerHTML = payEditHtml;
+
+      const addGrp = document.getElementById('paymentGroup').value || '카드';
+      fillSubSelect(document.getElementById('paymentSub'), addGrp, '');
+
+      const editGrp = document.getElementById('editPaymentGroup').value || '카드';
+      fillSubSelect(document.getElementById('editPaymentSub'), editGrp, '');
     }
 
     async function apiGetInit() {
@@ -321,6 +378,8 @@
 
     function openAddModal() {
       updateFormDate();
+      const grp = document.getElementById('paymentGroup').value || '카드';
+      fillSubSelect(document.getElementById('paymentSub'), grp, '');
       document.getElementById('addModal').classList.add('open');
     }
 
@@ -341,12 +400,9 @@
       }
       editCatEl.value = target.category;
 
-      const editPayEl = document.getElementById('editPayment');
-      const payVal = target.payment || '카드';
-      if (!payments.includes(payVal)) {
-        editPayEl.innerHTML = `<option value="${escapeHtml(payVal)}">${escapeHtml(payVal)}</option>` + editPayEl.innerHTML;
-      }
-      editPayEl.value = payVal;
+      const parsedPay = parsePaymentString(target.payment);
+      document.getElementById('editPaymentGroup').value = parsedPay.group;
+      fillSubSelect(document.getElementById('editPaymentSub'), parsedPay.group, parsedPay.sub);
 
       document.getElementById('editMerchant').value = target.merchant;
       document.getElementById('editAmount').value = target.amount;
@@ -361,14 +417,19 @@
 
     function renderSettingsTags() {
       const catBox = document.getElementById('settingCategoryTags');
-      const payBox = document.getElementById('settingPaymentTags');
+      const cardBox = document.getElementById('settingCardTags');
+      const cashBox = document.getElementById('settingCashTags');
 
       catBox.innerHTML = draftCategories.map((c, idx) => `
         <span class="tag-pill">${escapeHtml(c)}<button type="button" class="tag-del" data-type="cat" data-idx="${idx}">×</button></span>
       `).join('');
 
-      payBox.innerHTML = draftPayments.map((p, idx) => `
-        <span class="tag-pill">${escapeHtml(p)}<button type="button" class="tag-del" data-type="pay" data-idx="${idx}">×</button></span>
+      cardBox.innerHTML = draftCardList.map((p, idx) => `
+        <span class="tag-pill">${escapeHtml(p)}<button type="button" class="tag-del" data-type="card" data-idx="${idx}">×</button></span>
+      `).join('');
+
+      cashBox.innerHTML = draftCashList.map((p, idx) => `
+        <span class="tag-pill">${escapeHtml(p)}<button type="button" class="tag-del" data-type="cash" data-idx="${idx}">×</button></span>
       `).join('');
 
       document.querySelectorAll('.tag-del').forEach(btn => {
@@ -376,7 +437,8 @@
           const type = btn.getAttribute('data-type');
           const idx = Number(btn.getAttribute('data-idx'));
           if (type === 'cat' && draftCategories.length > 1) draftCategories.splice(idx, 1);
-          if (type === 'pay' && draftPayments.length > 1) draftPayments.splice(idx, 1);
+          if (type === 'card' && draftCardList.length > 1) draftCardList.splice(idx, 1);
+          if (type === 'cash' && draftCashList.length > 1) draftCashList.splice(idx, 1);
           renderSettingsTags();
         };
       });
@@ -384,7 +446,8 @@
 
     function openSettingsModal() {
       draftCategories = categories.slice();
-      draftPayments = payments.slice();
+      draftCardList = (paymentGroups['카드'] || []).slice();
+      draftCashList = (paymentGroups['현금'] || []).slice();
       renderSettingsTags();
       document.getElementById('settingsModal').classList.add('open');
     }
@@ -392,6 +455,14 @@
     function closeSettingsModal() {
       document.getElementById('settingsModal').classList.remove('open');
     }
+
+    document.getElementById('paymentGroup').onchange = () => {
+      fillSubSelect(document.getElementById('paymentSub'), document.getElementById('paymentGroup').value, '');
+    };
+
+    document.getElementById('editPaymentGroup').onchange = () => {
+      fillSubSelect(document.getElementById('editPaymentSub'), document.getElementById('editPaymentGroup').value, '');
+    };
 
     document.getElementById('openAddBtn').onclick = openAddModal;
     document.getElementById('closeAddBtn').onclick = closeAddModal;
@@ -408,11 +479,21 @@
       inp.value = '';
     };
 
-    document.getElementById('addPaymentTagBtn').onclick = () => {
-      const inp = document.getElementById('newPaymentInput');
+    document.getElementById('addCardTagBtn').onclick = () => {
+      const inp = document.getElementById('newCardInput');
       const val = inp.value.trim();
-      if (val && !draftPayments.includes(val)) {
-        draftPayments.push(val);
+      if (val && !draftCardList.includes(val)) {
+        draftCardList.push(val);
+        renderSettingsTags();
+      }
+      inp.value = '';
+    };
+
+    document.getElementById('addCashTagBtn').onclick = () => {
+      const inp = document.getElementById('newCashInput');
+      const val = inp.value.trim();
+      if (val && !draftCashList.includes(val)) {
+        draftCashList.push(val);
         renderSettingsTags();
       }
       inp.value = '';
@@ -422,12 +503,16 @@
       closeSettingsModal();
       setStatus('설정 저장 중...');
       try {
+        const nextGroups = {
+          '카드': draftCardList.length > 0 ? draftCardList.slice() : ['우리카드'],
+          '현금': draftCashList.length > 0 ? draftCashList.slice() : ['농협체크']
+        };
         const saved = await apiPost({
           action: 'saveSettings',
-          settings: { categories: draftCategories, payments: draftPayments }
+          settings: { categories: draftCategories, paymentGroups: nextGroups }
         });
         categories = saved.categories || draftCategories;
-        payments = saved.payments || draftPayments;
+        paymentGroups = saved.paymentGroups || nextGroups;
         renderSelectOptions();
         setStatus('설정 저장 완료');
       } catch (err) {
@@ -474,13 +559,18 @@
         return;
       }
 
+      const payment = formatPaymentLabel(
+        document.getElementById('paymentGroup').value,
+        document.getElementById('paymentSub').value
+      );
+
       const item = {
         date: selectedDate,
         author: document.getElementById('author').value,
         category: document.getElementById('category').value,
         merchant,
         amount,
-        payment: document.getElementById('payment').value,
+        payment,
         memo: document.getElementById('memo').value.trim()
       };
 
@@ -508,6 +598,11 @@
         return;
       }
 
+      const payment = formatPaymentLabel(
+        document.getElementById('editPaymentGroup').value,
+        document.getElementById('editPaymentSub').value
+      );
+
       const item = {
         id,
         date: document.getElementById('editDate').value,
@@ -515,7 +610,7 @@
         category: document.getElementById('editCategory').value,
         merchant: document.getElementById('editMerchant').value.trim(),
         amount,
-        payment: document.getElementById('editPayment').value,
+        payment,
         memo: document.getElementById('editMemo').value.trim()
       };
 
@@ -567,8 +662,13 @@
           if (Array.isArray(data.settings.categories) && data.settings.categories.length > 0) {
             categories = data.settings.categories;
           }
-          if (Array.isArray(data.settings.payments) && data.settings.payments.length > 0) {
-            payments = data.settings.payments;
+          if (data.settings.paymentGroups) {
+            paymentGroups = {
+              '카드': Array.isArray(data.settings.paymentGroups['카드']) && data.settings.paymentGroups['카드'].length > 0
+                ? data.settings.paymentGroups['카드'] : ['우리카드'],
+              '현금': Array.isArray(data.settings.paymentGroups['현금']) && data.settings.paymentGroups['현금'].length > 0
+                ? data.settings.paymentGroups['현금'] : ['농협체크']
+            };
           }
           renderSelectOptions();
         }
