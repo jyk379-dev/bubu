@@ -20,11 +20,34 @@
     body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif; background:var(--bg); color:var(--text); padding-bottom:96px; }
     .wrap { max-width:520px; margin:0 auto; padding:12px; }
     .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,0.03); }
-    .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:6px; }
+
+    .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; }
     .cal-title { font-size:17px; font-weight:700; white-space:nowrap; }
-    .nav-group { display:flex; gap:5px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
-    .nav-btn { border:1px solid var(--line); background:#fff; border-radius:10px; padding:6px 9px; font-size:12px; font-weight:600; cursor:pointer; color:var(--text); }
-    .nav-btn.primary-outline { border-color:#bfdbfe; background:var(--accent-soft); color:var(--accent); }
+    .nav-group { display:flex; gap:6px; align-items:center; }
+
+    .icon-btn {
+      position:relative;
+      width:36px; height:36px;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:10px;
+      display:inline-flex; align-items:center; justify-content:center;
+      cursor:pointer; color:var(--text);
+      padding:0;
+    }
+    .icon-btn:active { background:#f4f4f5; transform:scale(0.96); }
+    .icon-badge {
+      position:absolute; top:-4px; right:-4px;
+      min-width:16px; height:16px; padding:0 4px;
+      border-radius:999px;
+      background:var(--accent); color:#fff;
+      font-size:10px; font-weight:700; line-height:16px; text-align:center;
+      display:none;
+    }
+    .icon-badge.show { display:inline-block; }
+
+    /* 좌우 슬라이딩 영역 */
+    .cal-swipe-area { touch-action:pan-y; user-select:none; }
     .weekdays,.days { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center; }
     .weekdays div { font-size:12px; color:var(--sub); padding:4px 0; font-weight:600; }
     .day-btn { border:1px solid transparent; background:transparent; border-radius:10px; min-height:58px; padding:4px 2px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; cursor:pointer; color:var(--text); }
@@ -121,6 +144,14 @@
     .detail-box-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
     .detail-box-title { font-size:13px; font-weight:700; color:var(--accent); }
     .detail-close { border:none; background:transparent; color:var(--sub); font-size:12px; font-weight:600; cursor:pointer; }
+
+    /* 알림 리스트 스타일 */
+    .noti-list { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    .noti-item { display:flex; justify-content:space-between; align-items:center; padding:11px 12px; border-top:1px solid #f0f0f3; cursor:pointer; background:#fff; }
+    .noti-item:first-child { border-top:none; }
+    .noti-item:active { background:#fafafa; }
+    .noti-meta { font-size:11px; color:var(--sub); margin-bottom:2px; }
+    .noti-title { font-size:13.5px; font-weight:600; }
   </style>
 </head>
 <body>
@@ -129,15 +160,27 @@
       <div class="cal-header">
         <div class="cal-title" id="monthLabel"></div>
         <div class="nav-group">
-          <button type="button" class="nav-btn primary-outline" id="openSettleBtn">📊 정산</button>
-          <button type="button" class="nav-btn" id="openSettingsBtn">⚙ 설정</button>
-          <button type="button" class="nav-btn" id="todayBtn">오늘</button>
-          <button type="button" class="nav-btn" id="prevMonth">◀</button>
-          <button type="button" class="nav-btn" id="nextMonth">▶</button>
+          <!-- 1. 정산 -->
+          <button type="button" class="icon-btn" id="openSettleBtn" aria-label="정산">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          </button>
+          <!-- 2. 알림 -->
+          <button type="button" class="icon-btn" id="openNotiBtn" aria-label="알림">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <span class="icon-badge" id="notiBadge"></span>
+          </button>
+          <!-- 3. 설정 -->
+          <button type="button" class="icon-btn" id="openSettingsBtn" aria-label="설정">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </button>
         </div>
       </div>
-      <div class="weekdays"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
-      <div class="days" id="calendarDays"></div>
+
+      <!-- 좌우 슬라이딩으로 월 이동 -->
+      <div class="cal-swipe-area" id="calSwipeArea">
+        <div class="weekdays"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+        <div class="days" id="calendarDays"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -211,25 +254,39 @@
     </div>
   </div>
 
+  <!-- 알림 모달 (최근 등록 이력 순) -->
+  <div class="modal-backdrop" id="notiModal">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div class="modal-title">최근 등록 이력</div>
+        <span style="font-size:12px; color:var(--sub);" id="notiCountLabel"></span>
+      </div>
+      <div id="notiListContainer"></div>
+      <button type="button" class="btn btn-ghost" style="margin-top:12px;" id="closeNotiBtn">닫기</button>
+    </div>
+  </div>
+
   <!-- 정산 모달 -->
   <div class="modal-backdrop" id="settleModal">
     <div class="modal-sheet">
       <div class="modal-header">
         <div class="modal-title" id="settleTitle">월간 정산</div>
         <div class="nav-group">
-          <button type="button" class="nav-btn" id="settlePrevMonth">◀</button>
-          <button type="button" class="nav-btn" id="settleNextMonth">▶</button>
+          <button type="button" class="icon-btn" id="settlePrevMonth" aria-label="이전 달">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <button type="button" class="icon-btn" id="settleNextMonth" aria-label="다음 달">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
         </div>
       </div>
 
-      <!-- 작성자 필터 (메인 화면과 동기화) -->
       <div class="filter-row" id="settleAuthorChips">
         <button type="button" class="chip active" data-author="ALL">전체</button>
         <button type="button" class="chip" data-author="연근">연근</button>
         <button type="button" class="chip" data-author="귤이">귤이</button>
       </div>
 
-      <!-- 수입 / 지출 / 잔액 요약 -->
       <div class="summary-grid">
         <div class="sum-box">
           <div class="sum-box-label">총 수입</div>
@@ -245,16 +302,12 @@
         </div>
       </div>
 
-      <!-- 보기 기준 선택 (카테고리별 / 결제수단별) -->
       <div class="settle-tabs">
         <button type="button" class="settle-tab active" data-mode="category">카테고리별</button>
         <button type="button" class="settle-tab" data-mode="payment">결제 수단별</button>
       </div>
 
-      <!-- 항목별 합계 리스트 -->
       <div id="settleStatContainer"></div>
-
-      <!-- 선택한 항목의 상세 내역 리스트 -->
       <div id="settleDetailContainer" style="display:none;"></div>
 
       <button type="button" class="btn btn-ghost" style="margin-top:12px;" id="closeSettleBtn">닫기</button>
@@ -306,9 +359,8 @@
     let addEntryType = 'expense';
     let editEntryType = 'expense';
 
-    // 정산 상태
-    let settleMode = 'category'; // 'category' | 'payment'
-    let selectedSettleKey = null; // { type: 'expense'|'income', key: string }
+    let settleMode = 'category';
+    let selectedSettleKey = null;
 
     const todayStr = formatYMD(new Date());
     let viewYear = Number(todayStr.slice(0, 4));
@@ -332,7 +384,6 @@
       if(author==='배우자') return '귤이';
       return author;
     }
-    // 항목이 수입인지 판별 (명시적 type 우선, 없으면 카테고리명으로 보조 추론)
     function getEntryType(item) {
       if (item.type === 'income' || item.type === '수입') return 'income';
       if (item.type === 'expense' || item.type === '지출') return 'expense';
@@ -354,6 +405,17 @@
       return cleanSub?`${cleanGrp} > ${cleanSub}`:cleanGrp;
     }
     function setStatus(msg) { document.getElementById('statusMsg').textContent=msg||''; }
+
+    function updateNotiBadge() {
+      const badge = document.getElementById('notiBadge');
+      const filtered = expenses.filter(e => authorFilter === 'ALL' || e.author === authorFilter);
+      if (filtered.length > 0) {
+        badge.textContent = filtered.length > 99 ? '99+' : String(filtered.length);
+        badge.classList.add('show');
+      } else {
+        badge.classList.remove('show');
+      }
+    }
 
     function fillSubSelect(selectEl,grp,selectedSub) {
       const list=(paymentGroups[grp]||[]).slice();
@@ -394,6 +456,17 @@
       const json=await res.json();
       if(!json.ok) throw new Error(json.error||'처리 실패');
       return json.data;
+    }
+
+    function goPrevMonth() {
+      viewMonth--;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      renderCalendar();
+    }
+    function goNextMonth() {
+      viewMonth++;
+      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      renderCalendar();
     }
 
     function renderCalendar() {
@@ -441,6 +514,7 @@
         };
         daysEl.appendChild(btn);
       }
+      updateNotiBadge();
     }
 
     function renderList() {
@@ -573,17 +647,66 @@
       document.getElementById('editModal').classList.remove('open');
     }
 
+    /* ===== 알림 모달 (최근 등록 이력 순) ===== */
+    function renderNotifications() {
+      const container = document.getElementById('notiListContainer');
+      const countLabel = document.getElementById('notiCountLabel');
+
+      // 등록 순서(배열 순서)의 역순 = 최근 등록 이력 순
+      const recentList = expenses
+        .filter(e => authorFilter === 'ALL' || e.author === authorFilter)
+        .slice()
+        .reverse()
+        .slice(0, 30);
+
+      countLabel.textContent = recentList.length > 0 ? `최근 ${recentList.length}건` : '';
+
+      if (recentList.length === 0) {
+        container.innerHTML = '<div class="empty">등록된 이력이 없습니다.</div>';
+        return;
+      }
+
+      container.innerHTML = `<div class="noti-list">${recentList.map(item=>{
+        const isInc = getEntryType(item) === 'income';
+        const sign = isInc ? '+' : '-';
+        const cls = isInc ? 'inc' : 'exp';
+        const typeLabel = isInc ? '수입 등록' : '지출 등록';
+        return `<div class="noti-item" data-id="${escapeHtml(item.id)}">
+          <div>
+            <div class="noti-meta">${escapeHtml(item.author)} · ${typeLabel} · 거래일 ${escapeHtml(item.date)}</div>
+            <div class="noti-title">[${escapeHtml(item.category)}] ${escapeHtml(item.merchant || (isInc?'수입 내역':'내역 없음'))}</div>
+            <div class="item-sub">${escapeHtml(item.payment || '')}${item.memo ? ' · '+escapeHtml(item.memo) : ''}</div>
+          </div>
+          <div class="item-amt ${cls}">${sign}${Number(item.amount||0).toLocaleString()}원</div>
+        </div>`;
+      }).join('')}</div>`;
+
+      container.querySelectorAll('.noti-item').forEach(el=>{
+        el.onclick = () => {
+          const id = el.getAttribute('data-id');
+          closeNotiModal();
+          openEditModal(id);
+        };
+      });
+    }
+
+    function openNotiModal() {
+      renderNotifications();
+      document.getElementById('notiModal').classList.add('open');
+    }
+    function closeNotiModal() {
+      document.getElementById('notiModal').classList.remove('open');
+    }
+
     /* ===== 정산 모달 로직 ===== */
     function renderSettlement() {
       const ymPrefix = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}`;
       document.getElementById('settleTitle').textContent = `${viewYear}년 ${viewMonth+1}월 정산`;
 
-      // 작성자 필터 동기화 UI
       document.querySelectorAll('#settleAuthorChips .chip').forEach(c=>{
         c.classList.toggle('active', c.getAttribute('data-author')===authorFilter);
       });
 
-      // 해당 월 + 작성자 필터 데이터 추출
       const monthItems = expenses.filter(e=>{
         if(!e.date || !e.date.startsWith(ymPrefix)) return false;
         if(authorFilter!=='ALL' && e.author!==authorFilter) return false;
@@ -604,7 +727,6 @@
       netEl.textContent = `${net>=0?'+':''}${net.toLocaleString()}원`;
       netEl.style.color = net > 0 ? 'var(--income)' : (net < 0 ? 'var(--danger)' : 'var(--text)');
 
-      // 카테고리별 또는 결제수단별 그룹화 (수입/지출 구분 유지)
       const map = new Map();
       monthItems.forEach(item=>{
         const type = getEntryType(item);
@@ -621,7 +743,6 @@
         entry.items.push(item);
       });
 
-      // 지출 먼저 금액순 정렬, 그다음 수입 금액순 정렬
       const groups = Array.from(map.values()).sort((a,b)=>{
         if(a.type !== b.type) return a.type === 'expense' ? -1 : 1;
         return b.total - a.total;
@@ -666,7 +787,6 @@
         };
       });
 
-      // 선택된 항목이 있으면 상세 리스트 렌더링
       if(selectedSettleKey && map.has(selectedSettleKey)){
         const targetGroup = map.get(selectedSettleKey);
         const sortedItems = targetGroup.items.slice().sort((a,b)=>b.date.localeCompare(a.date));
@@ -755,6 +875,33 @@
       document.getElementById('settingsModal').classList.remove('open');
     }
 
+    /* ===== 달력 좌우 슬라이딩(터치 스와이프) ===== */
+    (function setupCalendarSwipe() {
+      const swipeEl = document.getElementById('calSwipeArea');
+      let startX = 0, startY = 0, tracking = false;
+
+      swipeEl.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        tracking = true;
+      }, { passive: true });
+
+      swipeEl.addEventListener('touchend', (e) => {
+        if (!tracking || !e.changedTouches || e.changedTouches.length !== 1) return;
+        tracking = false;
+        const endX = e.changedTouches[0].clientX;
+        const endY = e.changedTouches[0].clientY;
+        const dx = endX - startX;
+        const dy = endY - startY;
+
+        if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+          if (dx > 0) goPrevMonth();
+          else goNextMonth();
+        }
+      }, { passive: true });
+    })();
+
     /* ===== 이벤트 바인딩 ===== */
     document.querySelectorAll('#addTypeToggle .type-btn').forEach(btn=>{
       btn.onclick=()=>setAddType(btn.getAttribute('data-type'));
@@ -772,8 +919,9 @@
     document.getElementById('closeSettingsBtn').onclick=closeSettingsModal;
     document.getElementById('openSettleBtn').onclick=openSettleModal;
     document.getElementById('closeSettleBtn').onclick=closeSettleModal;
+    document.getElementById('openNotiBtn').onclick=openNotiModal;
+    document.getElementById('closeNotiBtn').onclick=closeNotiModal;
 
-    // 정산 탭 및 월 이동
     document.querySelectorAll('.settle-tab').forEach(tab=>{
       tab.onclick=()=>{
         document.querySelectorAll('.settle-tab').forEach(t=>t.classList.remove('active'));
@@ -796,7 +944,6 @@
       renderSettlement();
     };
 
-    // 설정 태그 추가/저장
     document.getElementById('addCategoryTagBtn').onclick=()=>{const inp=document.getElementById('newCategoryInput'),val=inp.value.trim();if(val&&!draftCategories.includes(val)){draftCategories.push(val);renderSettingsTags();}inp.value='';};
     document.getElementById('addIncomeCategoryTagBtn').onclick=()=>{const inp=document.getElementById('newIncomeCategoryInput'),val=inp.value.trim();if(val&&!draftIncomeCategories.includes(val)){draftIncomeCategories.push(val);renderSettingsTags();}inp.value='';};
     document.getElementById('addCardTagBtn').onclick=()=>{const inp=document.getElementById('newCardInput'),val=inp.value.trim();if(val&&!draftCardList.includes(val)){draftCardList.push(val);renderSettingsTags();}inp.value='';};
@@ -816,7 +963,6 @@
       }catch(err){setStatus('설정 저장 실패: '+err.message);}
     };
 
-    // 작성자 필터 (메인 + 정산 모달 동기화)
     function applyAuthorFilter(newAuthor) {
       authorFilter = newAuthor;
       document.querySelectorAll('.filter-row .chip').forEach(c=>{
@@ -828,16 +974,14 @@
       if(document.getElementById('settleModal').classList.contains('open')) {
         renderSettlement();
       }
+      if(document.getElementById('notiModal').classList.contains('open')) {
+        renderNotifications();
+      }
     }
     document.querySelectorAll('.filter-row .chip').forEach(chip=>{
       chip.onclick=()=>applyAuthorFilter(chip.getAttribute('data-author'));
     });
 
-    document.getElementById('todayBtn').onclick=()=>{selectedDate=todayStr;viewYear=Number(todayStr.slice(0,4));viewMonth=Number(todayStr.slice(5,7))-1;renderCalendar();renderList();updateFormDate();};
-    document.getElementById('prevMonth').onclick=()=>{viewMonth--;if(viewMonth<0){viewMonth=11;viewYear--;}renderCalendar();};
-    document.getElementById('nextMonth').onclick=()=>{viewMonth++;if(viewMonth>11){viewMonth=0;viewYear++;}renderCalendar();};
-
-    // 저장 / 수정 / 삭제
     document.getElementById('saveBtn').onclick=async()=>{
       const merchant=document.getElementById('merchant').value.trim();
       const amount=Number(document.getElementById('amount').value);
@@ -913,7 +1057,6 @@
     };
     document.getElementById('closeModalBtn').onclick=closeEditModal;
 
-    // 초기 데이터 로드
     renderSelectOptions();renderCalendar();renderList();updateFormDate();setStatus('데이터 불러오는 중...');
     apiGetInit().then(data=>{
       const rows=Array.isArray(data.expenses)?data.expenses:[];
