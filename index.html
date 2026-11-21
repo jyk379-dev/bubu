@@ -22,7 +22,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding-bottom: 40px;
+      padding-bottom: 96px;
     }
     .wrap { max-width: 520px; margin: 0 auto; padding: 12px; }
     .card {
@@ -167,6 +167,25 @@
     .btn-ghost { background: #f4f4f5; color: var(--text); }
     .status { font-size: 12px; color: var(--sub); margin-top: 8px; min-height: 16px; }
 
+    .fab-add {
+      position: fixed;
+      right: 20px;
+      bottom: 24px;
+      width: 56px;
+      height: 56px;
+      border: none;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 40;
+    }
+    .fab-add:active { transform: scale(0.95); }
+
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -218,9 +237,18 @@
       <div id="expenseList"></div>
       <div class="status" id="statusMsg"></div>
     </div>
+  </div>
 
-    <div class="card">
-      <div class="list-title" style="margin-bottom:10px;">지출 추가 (<span id="formDateText"></span>)</div>
+  <button type="button" class="fab-add" id="openAddBtn" aria-label="지출 추가">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  </button>
+
+  <div class="modal-backdrop" id="addModal">
+    <div class="modal-sheet">
+      <div class="modal-title">지출 추가 (<span id="formDateText"></span>)</div>
       <div class="form-grid">
         <div>
           <select id="author">
@@ -258,6 +286,7 @@
         </div>
       </div>
       <button type="button" class="btn btn-primary" id="saveBtn">저장하기</button>
+      <button type="button" class="btn btn-ghost" style="margin-top:8px;" id="closeAddBtn">닫기</button>
     </div>
   </div>
 
@@ -445,6 +474,15 @@
       document.getElementById('formDateText').textContent = selectedDate;
     }
 
+    function openAddModal() {
+      updateFormDate();
+      document.getElementById('addModal').classList.add('open');
+    }
+
+    function closeAddModal() {
+      document.getElementById('addModal').classList.remove('open');
+    }
+
     function openEditModal(id) {
       const target = expenses.find(e => String(e.id) === String(id));
       if (!target) return;
@@ -462,6 +500,9 @@
     function closeEditModal() {
       document.getElementById('editModal').classList.remove('open');
     }
+
+    document.getElementById('openAddBtn').onclick = openAddModal;
+    document.getElementById('closeAddBtn').onclick = closeAddModal;
 
     document.querySelectorAll('.chip').forEach(chip => {
       chip.onclick = () => {
@@ -512,6 +553,7 @@
         memo: document.getElementById('memo').value.trim()
       };
 
+      closeAddModal();
       setStatus('저장 중...');
       try {
         const saved = await apiPost({ action: 'add', item });
