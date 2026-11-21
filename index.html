@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="부부 가계부">
+  <link rel="apple-touch-icon" href="./0D8ECB27-307E-4EBF-9E44-051EFE419EFC.png">
+  <link rel="icon" type="image/png" href="./0D8ECB27-307E-4EBF-9E44-051EFE419EFC.png">
   <title>부부 가계부</title>
   <style>
     :root { --bg:#f4f6f8; --card:#fff; --text:#18181b; --sub:#71717a; --line:#e4e4e7; --accent:#2563eb; --accent-soft:#eff6ff; --danger:#dc2626; --danger-soft:#fef2f2; }
@@ -99,21 +104,11 @@
     <div class="modal-sheet">
       <div class="modal-title">지출 추가 (<span id="formDateText"></span>)</div>
       <div class="form-grid">
-        <div>
-          <select id="author">
-            <option value="연근">작성자: 연근</option>
-            <option value="귤이">작성자: 귤이</option>
-          </select>
-        </div>
+        <div><select id="author"><option value="연근">작성자: 연근</option><option value="귤이">작성자: 귤이</option></select></div>
         <div><select id="category"></select></div>
         <div><input type="text" id="merchant" placeholder="사용처 (예: 마트)" /></div>
         <div><input type="number" id="amount" placeholder="금액 (원)" inputmode="numeric" /></div>
-        <div>
-          <select id="paymentGroup">
-            <option value="카드">결제: 카드</option>
-            <option value="현금">결제: 현금</option>
-          </select>
-        </div>
+        <div><select id="paymentGroup"><option value="카드">결제: 카드</option><option value="현금">결제: 현금</option></select></div>
         <div><select id="paymentSub"></select></div>
         <div class="full"><input type="text" id="memo" placeholder="메모 (선택)" /></div>
       </div>
@@ -128,20 +123,10 @@
       <input type="hidden" id="editId" />
       <div class="form-grid">
         <div><input type="date" id="editDate" /></div>
-        <div>
-          <select id="editAuthor">
-            <option value="연근">연근</option>
-            <option value="귤이">귤이</option>
-          </select>
-        </div>
+        <div><select id="editAuthor"><option value="연근">연근</option><option value="귤이">귤이</option></select></div>
         <div><select id="editCategory"></select></div>
         <div><input type="number" id="editAmount" inputmode="numeric" placeholder="금액" /></div>
-        <div>
-          <select id="editPaymentGroup">
-            <option value="카드">카드</option>
-            <option value="현금">현금</option>
-          </select>
-        </div>
+        <div><select id="editPaymentGroup"><option value="카드">카드</option><option value="현금">현금</option></select></div>
         <div><select id="editPaymentSub"></select></div>
         <div class="full"><input type="text" id="editMerchant" placeholder="사용처" /></div>
         <div class="full"><input type="text" id="editMemo" placeholder="메모" /></div>
@@ -160,26 +145,17 @@
       <div class="setting-sec">
         <div class="setting-sec-title">카테고리</div>
         <div class="tag-list" id="settingCategoryTags"></div>
-        <div class="add-inline">
-          <input type="text" id="newCategoryInput" placeholder="새 카테고리 이름" />
-          <button type="button" id="addCategoryTagBtn">추가</button>
-        </div>
+        <div class="add-inline"><input type="text" id="newCategoryInput" placeholder="새 카테고리 이름" /><button type="button" id="addCategoryTagBtn">추가</button></div>
       </div>
       <div class="setting-sec">
         <div class="setting-sec-title">카드 세부 수단 (카드 &gt; ...)</div>
         <div class="tag-list" id="settingCardTags"></div>
-        <div class="add-inline">
-          <input type="text" id="newCardInput" placeholder="예: 우리카드, 현대카드" />
-          <button type="button" id="addCardTagBtn">추가</button>
-        </div>
+        <div class="add-inline"><input type="text" id="newCardInput" placeholder="예: 우리카드, 현대카드" /><button type="button" id="addCardTagBtn">추가</button></div>
       </div>
       <div class="setting-sec">
         <div class="setting-sec-title">현금 세부 수단 (현금 &gt; ...)</div>
         <div class="tag-list" id="settingCashTags"></div>
-        <div class="add-inline">
-          <input type="text" id="newCashInput" placeholder="예: 농협체크, 현금직접" />
-          <button type="button" id="addCashTagBtn">추가</button>
-        </div>
+        <div class="add-inline"><input type="text" id="newCashInput" placeholder="예: 농협체크, 현금직접" /><button type="button" id="addCashTagBtn">추가</button></div>
       </div>
       <button type="button" class="btn btn-primary" id="saveSettingsBtn">설정 저장</button>
       <button type="button" class="btn btn-ghost" style="margin-top:8px;" id="closeSettingsBtn">닫기</button>
@@ -188,495 +164,60 @@
 
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbyQ6su6NP0pMvRnvsy37fHlZbOs6VVdkgWzjLNRsB2u1ur6OLkjQcGed_cH5fbn6RYu2g/exec';
-
     let expenses = [];
     let categories = ['식비','보험','카페','교통','회비','쇼핑','통신','생필품','관리비','구독서비스','마트','문화','건강'];
     let paymentGroups = { '카드': ['우리카드'], '현금': ['농협체크'] };
-    let draftCategories = [];
-    let draftCardList = [];
-    let draftCashList = [];
+    let draftCategories = []; let draftCardList = []; let draftCashList = [];
     let authorFilter = 'ALL';
-
     const todayStr = formatYMD(new Date());
     let viewYear = Number(todayStr.slice(0, 4));
     let viewMonth = Number(todayStr.slice(5, 7)) - 1;
     let selectedDate = todayStr;
 
-    function formatYMD(d) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    }
+    function formatYMD(d) { const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+    function formatShortAmount(n) { if (!n) return ''; if (n>=10000) return `${(n/10000).toFixed(n%10000===0?0:1)}만`; return `${n.toLocaleString()}`; }
+    function escapeHtml(str) { return String(str).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function normalizeAuthor(author) { if(author==='나')return '연근';if(author==='배우자')return '귤이';return author; }
+    function parsePaymentString(payStr) { const raw=String(payStr||'').trim();if(raw.includes('>')){const parts=raw.split('>');return{group:parts[0].trim()==='현금'?'현금':'카드',sub:parts.slice(1).join('>').trim()};}if(raw==='현금'||raw==='계좌이체')return{group:'현금',sub:raw};return{group:'카드',sub:raw||''}; }
+    function formatPaymentLabel(grp,sub){const cleanGrp=grp==='현금'?'현금':'카드';const cleanSub=String(sub||'').trim();return cleanSub?`${cleanGrp} > ${cleanSub}`:cleanGrp;}
+    function setStatus(msg){document.getElementById('statusMsg').textContent=msg||'';}
+    function fillSubSelect(selectEl,grp,selectedSub){const list=(paymentGroups[grp]||[]).slice();if(selectedSub&&!list.includes(selectedSub))list.unshift(selectedSub);if(list.length===0){selectEl.innerHTML='<option value="">세부 수단 없음</option>';return;}selectEl.innerHTML=list.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');if(selectedSub)selectEl.value=selectedSub;}
+    function renderSelectOptions(){const catHtml=categories.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');document.getElementById('category').innerHTML=catHtml;document.getElementById('editCategory').innerHTML=catHtml;fillSubSelect(document.getElementById('paymentSub'),document.getElementById('paymentGroup').value||'카드','');fillSubSelect(document.getElementById('editPaymentSub'),document.getElementById('editPaymentGroup').value||'카드','');}
+    async function apiGetInit(){const res=await fetch(`${API_URL}?action=init`);const json=await res.json();if(!json.ok)throw new Error(json.error||'조회 실패');return json.data||{};}
+    async function apiPost(payload){const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});const json=await res.json();if(!json.ok)throw new Error(json.error||'처리 실패');return json.data;}
 
-    function formatShortAmount(n) {
-      if (!n) return '';
-      if (n >= 10000) return `${(n / 10000).toFixed(n % 10000 === 0 ? 0 : 1)}만`;
-      return `${n.toLocaleString()}`;
-    }
+    function renderCalendar(){const monthLabel=document.getElementById('monthLabel');const daysEl=document.getElementById('calendarDays');monthLabel.textContent=`${viewYear}년 ${viewMonth+1}월`;daysEl.innerHTML='';const firstDay=new Date(viewYear,viewMonth,1).getDay();const lastDate=new Date(viewYear,viewMonth+1,0).getDate();const dailySum={};expenses.forEach(e=>{if(!e.date)return;if(authorFilter!=='ALL'&&e.author!==authorFilter)return;dailySum[e.date]=(dailySum[e.date]||0)+Number(e.amount||0);});for(let i=0;i<firstDay;i++){const blank=document.createElement('div');blank.className='day-btn muted';daysEl.appendChild(blank);}for(let d=1;d<=lastDate;d++){const ymd=`${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;const btn=document.createElement('button');btn.type='button';let cls='day-btn';if(ymd===todayStr)cls+=' today';if(ymd===selectedDate)cls+=' selected';btn.className=cls;const sumText=dailySum[ymd]?`-${formatShortAmount(dailySum[ymd])}`:'';btn.innerHTML=`<span class="day-num">${d}</span><span class="day-sum">${sumText}</span>`;btn.onclick=()=>{selectedDate=ymd;renderCalendar();renderList();updateFormDate();};daysEl.appendChild(btn);}}
+    function renderList(){const labelEl=document.getElementById('selectedDateLabel');const totalEl=document.getElementById('selectedDateTotal');const listEl=document.getElementById('expenseList');labelEl.textContent=`${selectedDate} 지출`;const dayItems=expenses.filter(e=>{if(e.date!==selectedDate)return false;if(authorFilter!=='ALL'&&e.author!==authorFilter)return false;return true;});const total=dayItems.reduce((acc,cur)=>acc+Number(cur.amount||0),0);totalEl.textContent=`${total.toLocaleString()}원`;if(dayItems.length===0){listEl.innerHTML='<div class="empty">표시할 지출 내역이 없습니다.</div>';return;}listEl.innerHTML=dayItems.map(item=>`<div class="item" data-id="${escapeHtml(item.id)}"><div><div class="item-main">[${escapeHtml(item.category)}] ${escapeHtml(item.merchant||'내역 없음')}</div><div class="item-sub">${escapeHtml(item.author)} · ${escapeHtml(item.payment||'카드')}${item.memo?' · '+escapeHtml(item.memo):''}</div></div><div class="item-amt">-${Number(item.amount||0).toLocaleString()}원</div></div>`).join('');listEl.querySelectorAll('.item').forEach(el=>{el.onclick=()=>openEditModal(el.getAttribute('data-id'));});}
+    function updateFormDate(){document.getElementById('formDateText').textContent=selectedDate;}
+    function openAddModal(){updateFormDate();fillSubSelect(document.getElementById('paymentSub'),document.getElementById('paymentGroup').value||'카드','');document.getElementById('addModal').classList.add('open');}
+    function closeAddModal(){document.getElementById('addModal').classList.remove('open');}
+    function openEditModal(id){const target=expenses.find(e=>String(e.id)===String(id));if(!target)return;document.getElementById('editId').value=target.id;document.getElementById('editDate').value=target.date;document.getElementById('editAuthor').value=target.author;const editCatEl=document.getElementById('editCategory');if(!categories.includes(target.category))editCatEl.innerHTML=`<option value="${escapeHtml(target.category)}">${escapeHtml(target.category)}</option>`+editCatEl.innerHTML;editCatEl.value=target.category;const parsedPay=parsePaymentString(target.payment);document.getElementById('editPaymentGroup').value=parsedPay.group;fillSubSelect(document.getElementById('editPaymentSub'),parsedPay.group,parsedPay.sub);document.getElementById('editMerchant').value=target.merchant;document.getElementById('editAmount').value=target.amount;document.getElementById('editMemo').value=target.memo;document.getElementById('editModal').classList.add('open');}
+    function closeEditModal(){document.getElementById('editModal').classList.remove('open');renderSelectOptions();}
 
-    function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
-    }
+    function renderSettingsTags(){const catBox=document.getElementById('settingCategoryTags');const cardBox=document.getElementById('settingCardTags');const cashBox=document.getElementById('settingCashTags');catBox.innerHTML=draftCategories.map((c,idx)=>`<span class="tag-pill">${escapeHtml(c)}<button type="button" class="tag-del" data-type="cat" data-idx="${idx}">×</button></span>`).join('');cardBox.innerHTML=draftCardList.map((p,idx)=>`<span class="tag-pill">${escapeHtml(p)}<button type="button" class="tag-del" data-type="card" data-idx="${idx}">×</button></span>`).join('');cashBox.innerHTML=draftCashList.map((p,idx)=>`<span class="tag-pill">${escapeHtml(p)}<button type="button" class="tag-del" data-type="cash" data-idx="${idx}">×</button></span>`).join('');document.querySelectorAll('.tag-del').forEach(btn=>{btn.onclick=()=>{const type=btn.getAttribute('data-type');const idx=Number(btn.getAttribute('data-idx'));if(type==='cat'&&draftCategories.length>1)draftCategories.splice(idx,1);if(type==='card'&&draftCardList.length>1)draftCardList.splice(idx,1);if(type==='cash'&&draftCashList.length>1)draftCashList.splice(idx,1);renderSettingsTags();};});}
+    function openSettingsModal(){draftCategories=categories.slice();draftCardList=(paymentGroups['카드']||[]).slice();draftCashList=(paymentGroups['현금']||[]).slice();renderSettingsTags();document.getElementById('settingsModal').classList.add('open');}
+    function closeSettingsModal(){document.getElementById('settingsModal').classList.remove('open');}
 
-    function normalizeAuthor(author) {
-      if (author === '나') return '연근';
-      if (author === '배우자') return '귤이';
-      return author;
-    }
+    document.getElementById('paymentGroup').onchange=()=>fillSubSelect(document.getElementById('paymentSub'),document.getElementById('paymentGroup').value,'');
+    document.getElementById('editPaymentGroup').onchange=()=>fillSubSelect(document.getElementById('editPaymentSub'),document.getElementById('editPaymentGroup').value,'');
+    document.getElementById('openAddBtn').onclick=openAddModal;document.getElementById('closeAddBtn').onclick=closeAddModal;document.getElementById('openSettingsBtn').onclick=openSettingsModal;document.getElementById('closeSettingsBtn').onclick=closeSettingsModal;
+    document.getElementById('addCategoryTagBtn').onclick=()=>{const inp=document.getElementById('newCategoryInput'),val=inp.value.trim();if(val&&!draftCategories.includes(val)){draftCategories.push(val);renderSettingsTags()}inp.value='';};
+    document.getElementById('addCardTagBtn').onclick=()=>{const inp=document.getElementById('newCardInput'),val=inp.value.trim();if(val&&!draftCardList.includes(val)){draftCardList.push(val);renderSettingsTags()}inp.value='';};
+    document.getElementById('addCashTagBtn').onclick=()=>{const inp=document.getElementById('newCashInput'),val=inp.value.trim();if(val&&!draftCashList.includes(val)){draftCashList.push(val);renderSettingsTags()}inp.value='';};
+    document.getElementById('saveSettingsBtn').onclick=async()=>{closeSettingsModal();setStatus('설정 저장 중...');try{const nextGroups={'카드':draftCardList.length>0?draftCardList.slice():['우리카드'],'현금':draftCashList.length>0?draftCashList.slice():['농협체크']};const saved=await apiPost({action:'saveSettings',settings:{categories:draftCategories,paymentGroups:nextGroups}});categories=saved.categories||draftCategories;paymentGroups=saved.paymentGroups||nextGroups;renderSelectOptions();setStatus('설정 저장 완료');}catch(err){setStatus('설정 저장 실패: '+err.message);}};
 
-    function parsePaymentString(payStr) {
-      const raw = String(payStr || '').trim();
-      if (raw.includes('>')) {
-        const parts = raw.split('>');
-        const grp = parts[0].trim() === '현금' ? '현금' : '카드';
-        const sub = parts.slice(1).join('>').trim();
-        return { group: grp, sub: sub || '' };
-      }
-      if (raw === '현금' || raw === '계좌이체') {
-        return { group: '현금', sub: raw };
-      }
-      return { group: '카드', sub: raw || '' };
-    }
+    document.querySelectorAll('.chip').forEach(chip=>{chip.onclick=()=>{document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));chip.classList.add('active');authorFilter=chip.getAttribute('data-author');renderCalendar();renderList();};});
+    document.getElementById('todayBtn').onclick=()=>{selectedDate=todayStr;viewYear=Number(todayStr.slice(0,4));viewMonth=Number(todayStr.slice(5,7))-1;renderCalendar();renderList();updateFormDate();};
+    document.getElementById('prevMonth').onclick=()=>{viewMonth--;if(viewMonth<0){viewMonth=11;viewYear--;}renderCalendar();};
+    document.getElementById('nextMonth').onclick=()=>{viewMonth++;if(viewMonth>11){viewMonth=0;viewYear++;}renderCalendar();};
 
-    function formatPaymentLabel(grp, sub) {
-      const cleanGrp = grp === '현금' ? '현금' : '카드';
-      const cleanSub = String(sub || '').trim();
-      return cleanSub ? `${cleanGrp} > ${cleanSub}` : cleanGrp;
-    }
+    document.getElementById('saveBtn').onclick=async()=>{const merchant=document.getElementById('merchant').value.trim();const amount=Number(document.getElementById('amount').value);if(!amount||amount<=0){setStatus('금액을 1원 이상 입력해 주세요.');return;}const payment=formatPaymentLabel(document.getElementById('paymentGroup').value,document.getElementById('paymentSub').value);const item={date:selectedDate,author:document.getElementById('author').value,category:document.getElementById('category').value,merchant,amount,payment,memo:document.getElementById('memo').value.trim()};closeAddModal();setStatus('저장 중...');try{const saved=await apiPost({action:'add',item});expenses.push({...saved,author:normalizeAuthor(saved.author)});document.getElementById('merchant').value='';document.getElementById('amount').value='';document.getElementById('memo').value='';setStatus('저장 완료');renderCalendar();renderList();}catch(err){setStatus('저장 실패: '+err.message);}};
+    document.getElementById('updateItemBtn').onclick=async()=>{const id=document.getElementById('editId').value;const amount=Number(document.getElementById('editAmount').value);if(!amount||amount<=0){setStatus('금액을 1원 이상 입력해 주세요.');return;}const payment=formatPaymentLabel(document.getElementById('editPaymentGroup').value,document.getElementById('editPaymentSub').value);const item={id,date:document.getElementById('editDate').value,author:document.getElementById('editAuthor').value,category:document.getElementById('editCategory').value,merchant:document.getElementById('editMerchant').value.trim(),amount,payment,memo:document.getElementById('editMemo').value.trim()};closeEditModal();setStatus('수정 중...');try{const updated=await apiPost({action:'update',item});const normalized={...updated,author:normalizeAuthor(updated.author)};expenses=expenses.map(e=>String(e.id)===String(normalized.id)?normalized:e);selectedDate=normalized.date;viewYear=Number(normalized.date.slice(0,4));viewMonth=Number(normalized.date.slice(5,7))-1;setStatus('수정 완료');renderCalendar();renderList();updateFormDate();}catch(err){setStatus('수정 실패: '+err.message);}};
+    document.getElementById('deleteItemBtn').onclick=async()=>{const id=document.getElementById('editId').value;closeEditModal();setStatus('삭제 중...');try{const res=await apiPost({action:'delete',id});expenses=expenses.filter(e=>String(e.id)!==String(res.deletedId));setStatus('삭제 완료');renderCalendar();renderList();}catch(err){setStatus('삭제 실패: '+err.message);}};
+    document.getElementById('closeModalBtn').onclick=closeEditModal;
 
-    function setStatus(msg) {
-      document.getElementById('statusMsg').textContent = msg || '';
-    }
-
-    function fillSubSelect(selectEl, grp, selectedSub) {
-      const list = (paymentGroups[grp] || []).slice();
-      if (selectedSub && !list.includes(selectedSub)) {
-        list.unshift(selectedSub);
-      }
-      if (list.length === 0) {
-        selectEl.innerHTML = '<option value="">세부 수단 없음</option>';
-        return;
-      }
-      selectEl.innerHTML = list.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-      if (selectedSub) {
-        selectEl.value = selectedSub;
-      }
-    }
-
-    function renderSelectOptions() {
-      const catHtml = categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-      document.getElementById('category').innerHTML = catHtml;
-      document.getElementById('editCategory').innerHTML = catHtml;
-
-      const addGrp = document.getElementById('paymentGroup').value || '카드';
-      fillSubSelect(document.getElementById('paymentSub'), addGrp, '');
-
-      const editGrp = document.getElementById('editPaymentGroup').value || '카드';
-      fillSubSelect(document.getElementById('editPaymentSub'), editGrp, '');
-    }
-
-    async function apiGetInit() {
-      const res = await fetch(`${API_URL}?action=init`);
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || '조회 실패');
-      return json.data || {};
-    }
-
-    async function apiPost(payload) {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || '처리 실패');
-      return json.data;
-    }
-
-    function renderCalendar() {
-      const monthLabel = document.getElementById('monthLabel');
-      const daysEl = document.getElementById('calendarDays');
-      monthLabel.textContent = `${viewYear}년 ${viewMonth + 1}월`;
-      daysEl.innerHTML = '';
-
-      const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-      const lastDate = new Date(viewYear, viewMonth + 1, 0).getDate();
-      const dailySum = {};
-
-      expenses.forEach(e => {
-        if (!e.date) return;
-        if (authorFilter !== 'ALL' && e.author !== authorFilter) return;
-        dailySum[e.date] = (dailySum[e.date] || 0) + Number(e.amount || 0);
-      });
-
-      for (let i = 0; i < firstDay; i++) {
-        const blank = document.createElement('div');
-        blank.className = 'day-btn muted';
-        daysEl.appendChild(blank);
-      }
-
-      for (let d = 1; d <= lastDate; d++) {
-        const ymd = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        let cls = 'day-btn';
-        if (ymd === todayStr) cls += ' today';
-        if (ymd === selectedDate) cls += ' selected';
-        btn.className = cls;
-
-        const sumText = dailySum[ymd] ? `-${formatShortAmount(dailySum[ymd])}` : '';
-        btn.innerHTML = `<span class="day-num">${d}</span><span class="day-sum">${sumText}</span>`;
-        btn.onclick = () => {
-          selectedDate = ymd;
-          renderCalendar();
-          renderList();
-          updateFormDate();
-        };
-        daysEl.appendChild(btn);
-      }
-    }
-
-    function renderList() {
-      const labelEl = document.getElementById('selectedDateLabel');
-      const totalEl = document.getElementById('selectedDateTotal');
-      const listEl = document.getElementById('expenseList');
-      labelEl.textContent = `${selectedDate} 지출`;
-
-      const dayItems = expenses.filter(e => {
-        if (e.date !== selectedDate) return false;
-        if (authorFilter !== 'ALL' && e.author !== authorFilter) return false;
-        return true;
-      });
-
-      const total = dayItems.reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
-      totalEl.textContent = `${total.toLocaleString()}원`;
-
-      if (dayItems.length === 0) {
-        listEl.innerHTML = '<div class="empty">표시할 지출 내역이 없습니다.</div>';
-        return;
-      }
-
-      listEl.innerHTML = dayItems.map(item => `
-        <div class="item" data-id="${escapeHtml(item.id)}">
-          <div>
-            <div class="item-main">[${escapeHtml(item.category)}] ${escapeHtml(item.merchant || '내역 없음')}</div>
-            <div class="item-sub">${escapeHtml(item.author)} · ${escapeHtml(item.payment || '카드')}${item.memo ? ' · ' + escapeHtml(item.memo) : ''}</div>
-          </div>
-          <div class="item-amt">-${Number(item.amount || 0).toLocaleString()}원</div>
-        </div>
-      `).join('');
-
-      listEl.querySelectorAll('.item').forEach(el => {
-        el.onclick = () => openEditModal(el.getAttribute('data-id'));
-      });
-    }
-
-    function updateFormDate() {
-      document.getElementById('formDateText').textContent = selectedDate;
-    }
-
-    function openAddModal() {
-      updateFormDate();
-      const grp = document.getElementById('paymentGroup').value || '카드';
-      fillSubSelect(document.getElementById('paymentSub'), grp, '');
-      document.getElementById('addModal').classList.add('open');
-    }
-
-    function closeAddModal() {
-      document.getElementById('addModal').classList.remove('open');
-    }
-
-    function openEditModal(id) {
-      const target = expenses.find(e => String(e.id) === String(id));
-      if (!target) return;
-      document.getElementById('editId').value = target.id;
-      document.getElementById('editDate').value = target.date;
-      document.getElementById('editAuthor').value = target.author;
-
-      const editCatEl = document.getElementById('editCategory');
-      if (!categories.includes(target.category)) {
-        editCatEl.innerHTML = `<option value="${escapeHtml(target.category)}">${escapeHtml(target.category)}</option>` + editCatEl.innerHTML;
-      }
-      editCatEl.value = target.category;
-
-      const parsedPay = parsePaymentString(target.payment);
-      document.getElementById('editPaymentGroup').value = parsedPay.group;
-      fillSubSelect(document.getElementById('editPaymentSub'), parsedPay.group, parsedPay.sub);
-
-      document.getElementById('editMerchant').value = target.merchant;
-      document.getElementById('editAmount').value = target.amount;
-      document.getElementById('editMemo').value = target.memo;
-      document.getElementById('editModal').classList.add('open');
-    }
-
-    function closeEditModal() {
-      document.getElementById('editModal').classList.remove('open');
-      renderSelectOptions();
-    }
-
-    function renderSettingsTags() {
-      const catBox = document.getElementById('settingCategoryTags');
-      const cardBox = document.getElementById('settingCardTags');
-      const cashBox = document.getElementById('settingCashTags');
-
-      catBox.innerHTML = draftCategories.map((c, idx) => `
-        <span class="tag-pill">${escapeHtml(c)}<button type="button" class="tag-del" data-type="cat" data-idx="${idx}">×</button></span>
-      `).join('');
-
-      cardBox.innerHTML = draftCardList.map((p, idx) => `
-        <span class="tag-pill">${escapeHtml(p)}<button type="button" class="tag-del" data-type="card" data-idx="${idx}">×</button></span>
-      `).join('');
-
-      cashBox.innerHTML = draftCashList.map((p, idx) => `
-        <span class="tag-pill">${escapeHtml(p)}<button type="button" class="tag-del" data-type="cash" data-idx="${idx}">×</button></span>
-      `).join('');
-
-      document.querySelectorAll('.tag-del').forEach(btn => {
-        btn.onclick = () => {
-          const type = btn.getAttribute('data-type');
-          const idx = Number(btn.getAttribute('data-idx'));
-          if (type === 'cat' && draftCategories.length > 1) draftCategories.splice(idx, 1);
-          if (type === 'card' && draftCardList.length > 1) draftCardList.splice(idx, 1);
-          if (type === 'cash' && draftCashList.length > 1) draftCashList.splice(idx, 1);
-          renderSettingsTags();
-        };
-      });
-    }
-
-    function openSettingsModal() {
-      draftCategories = categories.slice();
-      draftCardList = (paymentGroups['카드'] || []).slice();
-      draftCashList = (paymentGroups['현금'] || []).slice();
-      renderSettingsTags();
-      document.getElementById('settingsModal').classList.add('open');
-    }
-
-    function closeSettingsModal() {
-      document.getElementById('settingsModal').classList.remove('open');
-    }
-
-    document.getElementById('paymentGroup').onchange = () => {
-      fillSubSelect(document.getElementById('paymentSub'), document.getElementById('paymentGroup').value, '');
-    };
-
-    document.getElementById('editPaymentGroup').onchange = () => {
-      fillSubSelect(document.getElementById('editPaymentSub'), document.getElementById('editPaymentGroup').value, '');
-    };
-
-    document.getElementById('openAddBtn').onclick = openAddModal;
-    document.getElementById('closeAddBtn').onclick = closeAddModal;
-    document.getElementById('openSettingsBtn').onclick = openSettingsModal;
-    document.getElementById('closeSettingsBtn').onclick = closeSettingsModal;
-
-    document.getElementById('addCategoryTagBtn').onclick = () => {
-      const inp = document.getElementById('newCategoryInput');
-      const val = inp.value.trim();
-      if (val && !draftCategories.includes(val)) {
-        draftCategories.push(val);
-        renderSettingsTags();
-      }
-      inp.value = '';
-    };
-
-    document.getElementById('addCardTagBtn').onclick = () => {
-      const inp = document.getElementById('newCardInput');
-      const val = inp.value.trim();
-      if (val && !draftCardList.includes(val)) {
-        draftCardList.push(val);
-        renderSettingsTags();
-      }
-      inp.value = '';
-    };
-
-    document.getElementById('addCashTagBtn').onclick = () => {
-      const inp = document.getElementById('newCashInput');
-      const val = inp.value.trim();
-      if (val && !draftCashList.includes(val)) {
-        draftCashList.push(val);
-        renderSettingsTags();
-      }
-      inp.value = '';
-    };
-
-    document.getElementById('saveSettingsBtn').onclick = async () => {
-      closeSettingsModal();
-      setStatus('설정 저장 중...');
-      try {
-        const nextGroups = {
-          '카드': draftCardList.length > 0 ? draftCardList.slice() : ['우리카드'],
-          '현금': draftCashList.length > 0 ? draftCashList.slice() : ['농협체크']
-        };
-        const saved = await apiPost({
-          action: 'saveSettings',
-          settings: { categories: draftCategories, paymentGroups: nextGroups }
-        });
-        categories = saved.categories || draftCategories;
-        paymentGroups = saved.paymentGroups || nextGroups;
-        renderSelectOptions();
-        setStatus('설정 저장 완료');
-      } catch (err) {
-        setStatus('설정 저장 실패: ' + err.message);
-      }
-    };
-
-    document.querySelectorAll('.chip').forEach(chip => {
-      chip.onclick = () => {
-        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        authorFilter = chip.getAttribute('data-author');
-        renderCalendar();
-        renderList();
-      };
-    });
-
-    document.getElementById('todayBtn').onclick = () => {
-      selectedDate = todayStr;
-      viewYear = Number(todayStr.slice(0, 4));
-      viewMonth = Number(todayStr.slice(5, 7)) - 1;
-      renderCalendar();
-      renderList();
-      updateFormDate();
-    };
-
-    document.getElementById('prevMonth').onclick = () => {
-      viewMonth--;
-      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
-      renderCalendar();
-    };
-
-    document.getElementById('nextMonth').onclick = () => {
-      viewMonth++;
-      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-      renderCalendar();
-    };
-
-    document.getElementById('saveBtn').onclick = async () => {
-      const merchant = document.getElementById('merchant').value.trim();
-      const amount = Number(document.getElementById('amount').value);
-      if (!amount || amount <= 0) {
-        setStatus('금액을 1원 이상 입력해 주세요.');
-        return;
-      }
-
-      const payment = formatPaymentLabel(
-        document.getElementById('paymentGroup').value,
-        document.getElementById('paymentSub').value
-      );
-
-      const item = {
-        date: selectedDate,
-        author: document.getElementById('author').value,
-        category: document.getElementById('category').value,
-        merchant,
-        amount,
-        payment,
-        memo: document.getElementById('memo').value.trim()
-      };
-
-      closeAddModal();
-      setStatus('저장 중...');
-      try {
-        const saved = await apiPost({ action: 'add', item });
-        expenses.push({ ...saved, author: normalizeAuthor(saved.author) });
-        document.getElementById('merchant').value = '';
-        document.getElementById('amount').value = '';
-        document.getElementById('memo').value = '';
-        setStatus('저장 완료');
-        renderCalendar();
-        renderList();
-      } catch (err) {
-        setStatus('저장 실패: ' + err.message);
-      }
-    };
-
-    document.getElementById('updateItemBtn').onclick = async () => {
-      const id = document.getElementById('editId').value;
-      const amount = Number(document.getElementById('editAmount').value);
-      if (!amount || amount <= 0) {
-        setStatus('금액을 1원 이상 입력해 주세요.');
-        return;
-      }
-
-      const payment = formatPaymentLabel(
-        document.getElementById('editPaymentGroup').value,
-        document.getElementById('editPaymentSub').value
-      );
-
-      const item = {
-        id,
-        date: document.getElementById('editDate').value,
-        author: document.getElementById('editAuthor').value,
-        category: document.getElementById('editCategory').value,
-        merchant: document.getElementById('editMerchant').value.trim(),
-        amount,
-        payment,
-        memo: document.getElementById('editMemo').value.trim()
-      };
-
-      closeEditModal();
-      setStatus('수정 중...');
-      try {
-        const updated = await apiPost({ action: 'update', item });
-        const normalized = { ...updated, author: normalizeAuthor(updated.author) };
-        expenses = expenses.map(e => String(e.id) === String(normalized.id) ? normalized : e);
-        selectedDate = normalized.date;
-        viewYear = Number(normalized.date.slice(0, 4));
-        viewMonth = Number(normalized.date.slice(5, 7)) - 1;
-        setStatus('수정 완료');
-        renderCalendar();
-        renderList();
-        updateFormDate();
-      } catch (err) {
-        setStatus('수정 실패: ' + err.message);
-      }
-    };
-
-    document.getElementById('deleteItemBtn').onclick = async () => {
-      const id = document.getElementById('editId').value;
-      closeEditModal();
-      setStatus('삭제 중...');
-      try {
-        const res = await apiPost({ action: 'delete', id });
-        expenses = expenses.filter(e => String(e.id) !== String(res.deletedId));
-        setStatus('삭제 완료');
-        renderCalendar();
-        renderList();
-      } catch (err) {
-        setStatus('삭제 실패: ' + err.message);
-      }
-    };
-
-    document.getElementById('closeModalBtn').onclick = closeEditModal;
-
-    renderSelectOptions();
-    renderCalendar();
-    renderList();
-    updateFormDate();
-    setStatus('데이터 불러오는 중...');
-    apiGetInit()
-      .then(data => {
-        const rows = Array.isArray(data.expenses) ? data.expenses : [];
-        expenses = rows.map(row => ({ ...row, author: normalizeAuthor(row.author) }));
-        if (data.settings) {
-          if (Array.isArray(data.settings.categories) && data.settings.categories.length > 0) {
-            categories = data.settings.categories;
-          }
-          if (data.settings.paymentGroups) {
-            paymentGroups = {
-              '카드': Array.isArray(data.settings.paymentGroups['카드']) && data.settings.paymentGroups['카드'].length > 0
-                ? data.settings.paymentGroups['카드'] : ['우리카드'],
-              '현금': Array.isArray(data.settings.paymentGroups['현금']) && data.settings.paymentGroups['현금'].length > 0
-                ? data.settings.paymentGroups['현금'] : ['농협체크']
-            };
-          }
-          renderSelectOptions();
-        }
-        setStatus('');
-        renderCalendar();
-        renderList();
-      })
-      .catch(err => setStatus('불러오기 실패: ' + err.message));
+    renderSelectOptions();renderCalendar();renderList();updateFormDate();setStatus('데이터 불러오는 중...');
+    apiGetInit().then(data=>{const rows=Array.isArray(data.expenses)?data.expenses:[];expenses=rows.map(row=>({...row,author:normalizeAuthor(row.author)}));if(data.settings){if(Array.isArray(data.settings.categories)&&data.settings.categories.length>0)categories=data.settings.categories;if(data.settings.paymentGroups){paymentGroups={'카드':Array.isArray(data.settings.paymentGroups['카드'])&&data.settings.paymentGroups['카드'].length>0?data.settings.paymentGroups['카드']:['우리카드'],'현금':Array.isArray(data.settings.paymentGroups['현금'])&&data.settings.paymentGroups['현금'].length>0?data.settings.paymentGroups['현금']:['농협체크']};}renderSelectOptions();}setStatus('');renderCalendar();renderList();}).catch(err=>setStatus('불러오기 실패: '+err.message));
   </script>
 </body>
 </html>
