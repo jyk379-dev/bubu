@@ -254,7 +254,7 @@
     </div>
   </div>
 
-  <!-- 알림 모달 (최근 등록 이력 순) -->
+  <!-- 알림 모달 (최근 등록 이력 10개) -->
   <div class="modal-backdrop" id="notiModal">
     <div class="modal-sheet">
       <div class="modal-header">
@@ -345,6 +345,8 @@
 
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbyQ6su6NP0pMvRnvsy37fHlZbOs6VVdkgWzjLNRsB2u1ur6OLkjQcGed_cH5fbn6RYu2g/exec';
+    const NOTI_SEEN_KEY = 'couple_ledger_noti_seen_count_v1';
+
     let expenses = [];
     let categories = ['식비','보험','카페','교통','회비','쇼핑','통신','생필품','관리비','구독서비스','마트','문화','건강'];
     let incomeCategories = ['급여','상여/보너스','용돈','부수입','이자/배당','환급/캐시백','기타수입'];
@@ -361,6 +363,8 @@
 
     let settleMode = 'category';
     let selectedSettleKey = null;
+
+    let seenTotalCount = Number(localStorage.getItem(NOTI_SEEN_KEY) || '0');
 
     const todayStr = formatYMD(new Date());
     let viewYear = Number(todayStr.slice(0, 4));
@@ -406,15 +410,29 @@
     }
     function setStatus(msg) { document.getElementById('statusMsg').textContent=msg||''; }
 
+    function syncSeenCountAfterDelete() {
+      if (seenTotalCount > expenses.length) {
+        seenTotalCount = expenses.length;
+        localStorage.setItem(NOTI_SEEN_KEY, String(seenTotalCount));
+      }
+    }
+
     function updateNotiBadge() {
       const badge = document.getElementById('notiBadge');
-      const filtered = expenses.filter(e => authorFilter === 'ALL' || e.author === authorFilter);
-      if (filtered.length > 0) {
-        badge.textContent = filtered.length > 99 ? '99+' : String(filtered.length);
+      const unread = Math.max(0, expenses.length - seenTotalCount);
+      if (unread > 0) {
+        badge.textContent = unread > 99 ? '99+' : String(unread);
         badge.classList.add('show');
       } else {
+        badge.textContent = '';
         badge.classList.remove('show');
       }
+    }
+
+    function markNotificationsAsRead() {
+      seenTotalCount = expenses.length;
+      localStorage.setItem(NOTI_SEEN_KEY, String(seenTotalCount));
+      updateNotiBadge();
     }
 
     function fillSubSelect(selectEl,grp,selectedSub) {
@@ -647,19 +665,18 @@
       document.getElementById('editModal').classList.remove('open');
     }
 
-    /* ===== 알림 모달 (최근 등록 이력 순) ===== */
+    /* ===== 알림 모달 (최근 등록 이력 10개) ===== */
     function renderNotifications() {
       const container = document.getElementById('notiListContainer');
       const countLabel = document.getElementById('notiCountLabel');
 
-      // 등록 순서(배열 순서)의 역순 = 최근 등록 이력 순
       const recentList = expenses
         .filter(e => authorFilter === 'ALL' || e.author === authorFilter)
         .slice()
         .reverse()
-        .slice(0, 30);
+        .slice(0, 10);
 
-      countLabel.textContent = recentList.length > 0 ? `최근 ${recentList.length}건` : '';
+      countLabel.textContent = recentList.length > 0 ? `${recentList.length}개` : '';
 
       if (recentList.length === 0) {
         container.innerHTML = '<div class="empty">등록된 이력이 없습니다.</div>';
@@ -691,6 +708,7 @@
     }
 
     function openNotiModal() {
+      markNotificationsAsRead();
       renderNotifications();
       document.getElementById('notiModal').classList.add('open');
     }
@@ -1050,6 +1068,7 @@
       try{
         const res=await apiPost({action:'delete',id});
         expenses=expenses.filter(e=>String(e.id)!==String(res.deletedId));
+        syncSeenCountAfterDelete();
         setStatus('삭제 완료');
         renderCalendar();
         renderList();
@@ -1057,6 +1076,7 @@
     };
     document.getElementById('closeModalBtn').onclick=closeEditModal;
 
+    // 초기 데이터 로드
     renderSelectOptions();renderCalendar();renderList();updateFormDate();setStatus('데이터 불러오는 중...');
     apiGetInit().then(data=>{
       const rows=Array.isArray(data.expenses)?data.expenses:[];
@@ -1072,6 +1092,7 @@
         renderSelectOptions();
       }
       expenses=rows.map(row=>({...row, author:normalizeAuthor(row.author)}));
+      syncSeenCountAfterDelete();
       setStatus('');
       renderCalendar();
       renderList();
