@@ -482,11 +482,40 @@
       if(!json.ok) throw new Error(json.error||'조회 실패');
       return json.data||{};
     }
-    async function apiPost(payload) {
-      const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
-      const json=await res.json();
-      if(!json.ok) throw new Error(json.error||'처리 실패');
-      return json.data;
+    
+    async function apiPost(payload, retries = 2) {
+      let lastErr;
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+          const res = await fetch(API_URL, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+          const json = await res.json();
+          if (!json.ok) {
+            throw new Error(json.error || '처리 실패');
+          }
+          return json.data;
+        } catch (err) {
+          lastErr = err;
+          const msg = String(err && err.message ? err.message : err);
+          const isNetworkRetryable =
+            msg.includes('Load failed') ||
+            msg.includes('Failed to fetch') ||
+            msg.includes('NetworkError') ||
+            msg.includes('HTTP 5');
+          if (!isNetworkRetryable || attempt === retries) {
+            throw err;
+          }
+          await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+        }
+      }
+      throw lastErr;
     }
 
     function goPrevMonth() {
