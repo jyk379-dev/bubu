@@ -102,6 +102,7 @@
     .modal-sheet { width:100%; max-width:520px; max-height:88vh; overflow-y:auto; background:#fff; border-radius:20px 20px 0 0; padding:18px 16px 28px; }
     .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
     .modal-title { font-size:16px; font-weight:700; }
+    .modal-sub { font-size:12px; color:var(--sub); margin-top:2px; font-weight:500; }
     .modal-actions { display:grid; grid-template-columns:1fr 2fr; gap:8px; margin-top:12px; }
 
     /* 설정 모달 태그 */
@@ -270,12 +271,15 @@
   <div class="modal-backdrop" id="settleModal">
     <div class="modal-sheet">
       <div class="modal-header">
-        <div class="modal-title" id="settleTitle">월간 정산</div>
+        <div>
+          <div class="modal-title" id="settleTitle">월간 정산</div>
+          <div class="modal-sub" id="settlePeriodLabel"></div>
+        </div>
         <div class="nav-group">
-          <button type="button" class="icon-btn" id="settlePrevMonth" aria-label="이전 달">
+          <button type="button" class="icon-btn" id="settlePrevMonth" aria-label="이전 통계 월">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
-          <button type="button" class="icon-btn" id="settleNextMonth" aria-label="다음 달">
+          <button type="button" class="icon-btn" id="settleNextMonth" aria-label="다음 통계 월">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
         </div>
@@ -374,6 +378,15 @@
     function formatYMD(d) {
       const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
       return `${y}-${m}-${day}`;
+    }
+    // 통계 월(year년 monthIndex+1월) 기준: 전월 25일 ~ 당월 24일
+    function getCycleRange(year, monthIndex) {
+      const startDate = new Date(year, monthIndex - 1, 25);
+      const endDate = new Date(year, monthIndex, 24);
+      const startStr = formatYMD(startDate);
+      const endStr = formatYMD(endDate);
+      const label = `${startStr.slice(5).replace('-', '.')} ~ ${endStr.slice(5).replace('-', '.')}`;
+      return { startStr, endStr, label };
     }
     function formatShortAmount(n) {
       if (!n) return '';
@@ -716,17 +729,19 @@
       document.getElementById('notiModal').classList.remove('open');
     }
 
-    /* ===== 정산 모달 로직 ===== */
+    /* ===== 정산 모달 로직 (전월 25일 ~ 당월 24일 기준) ===== */
     function renderSettlement() {
-      const ymPrefix = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}`;
+      const cycle = getCycleRange(viewYear, viewMonth);
       document.getElementById('settleTitle').textContent = `${viewYear}년 ${viewMonth+1}월 정산`;
+      document.getElementById('settlePeriodLabel').textContent = `통계 기간: ${cycle.label} (25일~24일)`;
 
       document.querySelectorAll('#settleAuthorChips .chip').forEach(c=>{
         c.classList.toggle('active', c.getAttribute('data-author')===authorFilter);
       });
 
       const monthItems = expenses.filter(e=>{
-        if(!e.date || !e.date.startsWith(ymPrefix)) return false;
+        if(!e.date) return false;
+        if(e.date < cycle.startStr || e.date > cycle.endStr) return false;
         if(authorFilter!=='ALL' && e.author!==authorFilter) return false;
         return true;
       });
@@ -770,7 +785,7 @@
       const detailContainer = document.getElementById('settleDetailContainer');
 
       if(groups.length === 0){
-        statContainer.innerHTML = '<div class="empty">이번 달 등록된 내역이 없습니다.</div>';
+        statContainer.innerHTML = '<div class="empty">해당 기간에 등록된 내역이 없습니다.</div>';
         detailContainer.style.display = 'none';
         selectedSettleKey = null;
         return;
