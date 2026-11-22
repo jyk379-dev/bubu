@@ -27,10 +27,10 @@
     .sync-dot {
       width:7px; height:7px; border-radius:999px;
       background:var(--accent);
-      opacity:0; transition:opacity 0.2s ease;
+      display:none;
       animation:pulseSync 1.1s infinite ease-in-out;
     }
-    .sync-dot.active { opacity:1; }
+    .sync-dot.active { display:inline-block; }
     @keyframes pulseSync {
       0%, 100% { transform:scale(0.85); opacity:0.5; }
       50% { transform:scale(1.2); opacity:1; }
@@ -465,8 +465,8 @@
     let seenIdSet = loadSeenIdSet();
     let currentUnreadSnapshot = new Set();
 
-    // 백그라운드 동기화 카운터 및 임시 ID 추적
-    let pendingSyncCount = 0;
+    // 토큰 기반 동기화 상태 관리 (카운터 꼬임 원천 차단)
+    const activeSyncTokens = new Map();
     const tempIdToRealIdMap = new Map();
     const deletedTempIds = new Set();
     let statusTimer = null;
@@ -476,20 +476,40 @@
     let viewMonth = Number(todayStr.slice(5, 7)) - 1;
     let selectedDate = todayStr;
 
-    /* ===== 로컬 캐시(즉시 로딩) & 백그라운드 동기화 헬퍼 ===== */
-    function beginSync() {
-      pendingSyncCount++;
+    /* ===== 토큰 기반 동기화 인디케이터 제어 ===== */
+    function updateSyncDotUi() {
       const dot = document.getElementById('syncDot');
-      if (dot) dot.classList.add('active');
+      if (!dot) return;
+      dot.classList.toggle('active', activeSyncTokens.size > 0);
     }
 
-    function endSync() {
-      pendingSyncCount = Math.max(0, pendingSyncCount - 1);
-      if (pendingSyncCount === 0) {
-        const dot = document.getElementById('syncDot');
-        if (dot) dot.classList.remove('active');
-      }
+    function startSyncToken(label = 'sync') {
+      const token = `${label}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      // 혹시 모를 행업 대비 12초 안전 타임아웃
+      const timer = setTimeout(() => {
+        finishSyncToken(token);
+      }, 12000);
+      activeSyncTokens.set(token, timer);
+      updateSyncDotUi();
+      return token;
     }
+
+    function finishSyncToken(token) {
+      if (!token) return;
+      const timer = activeSyncTokens.get(token);
+      if (timer) {
+        clearTimeout(timer);
+      }
+      activeSyncTokens.delete(token);
+      updateSyncDotUi();
+    }
+
+    // 화면 복귀 시 고아 토큰 정리
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && activeSyncTokens.size === 0) {
+        updateSyncDotUi();
+      }
+    });
 
     function saveLocalCache() {
       try {
@@ -751,7 +771,7 @@
     }
 
     async function apiGetInit() {
-      const res=await fetch(`${API_URL}?action=init`);
+      const res=await fetch(`${API_URL}?action=init&_t=${Date.now()}`, { cache: 'no-store' });
       const json=await res.json();
       if(!json.ok) throw new Error(json.error||'조회 실패');
       return json.data||{};
@@ -770,11 +790,17 @@
           if (!res.ok) {
             throw new Error(`HTTP ${res.status}`);
           }
-          const json = await res.json();
+          const text = await res.text();
+          let json;
+          try {
+            json = JSON.parse(text);
+          } catch (e) {
+            throw new Error('응답 형식 오류');
+          }
           if (!json.ok) {
             throw new Error(json.error || '처리 실패');
           }
-          return json.data;
+          return json.data ?? {};
         } catch (err) {
           lastErr = err;
           const msg = String(err && err.message ? err.message : err);
@@ -1409,7 +1435,6 @@
         '현금': draftCashList.length > 0 ? draftCashList.slice() : ['농협체크']
       };
 
-      // 1. UI 즉시 적용
       categories = draftCategories.slice();
       incomeCategories = draftIncomeCategories.slice();
       paymentGroups = nextGroups;
@@ -1421,8 +1446,7 @@
       }
       setStatus('');
 
-      // 2. 백그라운드 동기화
-      beginSync();
+      const token = startSyncToken('settings');
       apiPost({
         action: 'saveSettings',
         settings: { categories, incomeCategories, paymentGroups: nextGroups }
@@ -1435,7 +1459,6 @@
           saveLocalCache();
         }
       }).catch(err => {
-        // 실패 시 롤백
         categories = prevCategories;
         incomeCategories = prevIncomeCategories;
         paymentGroups = prevPaymentGroups;
@@ -1443,7 +1466,7 @@
         saveLocalCache();
         setStatus('설정 동기화 실패 (이전 설정으로 복구됨): ' + err.message, true, 4000);
       }).finally(() => {
-        endSync();
+        finishSyncToken(token);
       });
     };
 
@@ -1488,7 +1511,6 @@
         author: normalizeAuthor(item.author)
       };
 
-      // 1. UI 즉시 반영 및 폼 초기화
       expenses.push(optimisticItem);
       markItemIdAsSeen(tempId);
       saveLocalCache();
@@ -1500,26 +1522,27 @@
       setStatus('');
       refreshAllOpenViews();
 
-      // 2. 백그라운드 API 전송
-      beginSync();
+      const token = startSyncToken('add');
       apiPost({action:'add', item}).then(saved => {
+        const resolvedId = saved && saved.id !== undefined && saved.id !== null ? saved.id : tempId;
         const normalizedSaved = {
-          ...saved,
-          type: saved.type || currentType,
-          author: normalizeAuthor(saved.author)
+          ...(saved && typeof saved === 'object' ? saved : item),
+          id: resolvedId,
+          type: (saved && saved.type) || currentType,
+          author: normalizeAuthor((saved && saved.author) || item.author)
         };
         const realId = String(normalizedSaved.id);
         tempIdToRealIdMap.set(tempId, realId);
         markItemIdAsSeen(realId);
 
-        // 만약 응답 전에 사용자가 해당 임시 항목을 삭제한 경우 서버에서도 삭제 처리
         if (deletedTempIds.has(tempId)) {
           deletedTempIds.delete(tempId);
-          apiPost({ action: 'delete', id: realId }).catch(() => {});
+          if (!realId.startsWith('temp_')) {
+            apiPost({ action: 'delete', id: realId }).catch(() => {});
+          }
           return;
         }
 
-        // 임시 항목이 아직 존재하면 서버 응답 객체(최신 수정값 유지)로 ID 교체
         const idx = expenses.findIndex(e => String(e.id) === tempId);
         if (idx !== -1) {
           const currentLocal = expenses[idx];
@@ -1528,14 +1551,13 @@
           refreshAllOpenViews();
         }
       }).catch(err => {
-        // 실패 시 롤백
         expenses = expenses.filter(e => String(e.id) !== tempId);
         removeDeletedIdFromSeen(tempId);
         saveLocalCache();
         refreshAllOpenViews();
         setStatus('저장 실패 (네트워크 오류로 취소됨): ' + err.message, true, 4500);
       }).finally(() => {
-        endSync();
+        finishSyncToken(token);
       });
     };
 
@@ -1570,7 +1592,6 @@
         author: normalizeAuthor(item.author)
       };
 
-      // 1. UI 즉시 반영
       expenses = expenses.map(e => String(e.id) === id ? optimisticNormalized : e);
       selectedDate = optimisticNormalized.date;
       viewYear = Number(optimisticNormalized.date.slice(0, 4));
@@ -1582,29 +1603,26 @@
       refreshAllOpenViews();
       updateFormDate();
 
-      // 아직 서버 ID가 발급되기 전인 임시 항목이면, add 응답 시 병합되도록 대기
       if (id.startsWith('temp_')) return;
 
-      // 2. 백그라운드 API 전송
-      beginSync();
+      const token = startSyncToken('update');
       apiPost({action:'update', item}).then(updated => {
-        if (!updated) return;
         const normalized = {
-          ...updated,
-          type: updated.type || currentType,
-          author: normalizeAuthor(updated.author)
+          ...(updated && typeof updated === 'object' ? updated : item),
+          id: (updated && updated.id) || id,
+          type: (updated && updated.type) || currentType,
+          author: normalizeAuthor((updated && updated.author) || item.author)
         };
         expenses = expenses.map(e => String(e.id) === String(normalized.id) ? normalized : e);
         saveLocalCache();
         refreshAllOpenViews();
       }).catch(err => {
-        // 실패 시 롤백
         expenses = prevSnapshot;
         saveLocalCache();
         refreshAllOpenViews();
         setStatus('수정 실패 (이전 내용으로 복구됨): ' + err.message, true, 4500);
       }).finally(() => {
-        endSync();
+        finishSyncToken(token);
       });
     };
 
@@ -1614,7 +1632,6 @@
       const id = tempIdToRealIdMap.get(String(rawId)) || String(rawId);
       const prevSnapshot = expenses.map(e => ({ ...e }));
 
-      // 1. UI 즉시 삭제
       expenses = expenses.filter(e => String(e.id) !== id);
       removeDeletedIdFromSeen(id);
       saveLocalCache();
@@ -1623,26 +1640,22 @@
       setStatus('');
       refreshAllOpenViews();
 
-      // 임시 항목인 경우 삭제 플래그만 기록
       if (id.startsWith('temp_')) {
         deletedTempIds.add(id);
         return;
       }
 
-      // 2. 백그라운드 API 전송
-      beginSync();
+      const token = startSyncToken('delete');
       apiPost({action:'delete', id}).then(res => {
-        if (res && res.deletedId) {
-          removeDeletedIdFromSeen(res.deletedId);
-        }
+        const deletedId = (res && res.deletedId) || id;
+        removeDeletedIdFromSeen(deletedId);
       }).catch(err => {
-        // 실패 시 롤백
         expenses = prevSnapshot;
         saveLocalCache();
         refreshAllOpenViews();
         setStatus('삭제 실패 (복구됨): ' + err.message, true, 4500);
       }).finally(() => {
-        endSync();
+        finishSyncToken(token);
       });
     };
     document.getElementById('closeModalBtn').onclick=closeEditModal;
@@ -1658,7 +1671,7 @@
       setStatus('데이터 불러오는 중...');
     }
 
-    beginSync();
+    const initToken = startSyncToken('init');
     apiGetInit().then(data=>{
       const rows=Array.isArray(data.expenses)?data.expenses:[];
       if(data.settings){
@@ -1673,7 +1686,6 @@
         renderSelectOptions();
       }
 
-      // 동기화 도중 방금 추가되어 아직 서버 응답 대기 중인 임시 항목 보존
       const pendingTemps = expenses.filter(e => String(e.id).startsWith('temp_'));
       const serverExpenses = rows.map(row=>({...row, author:normalizeAuthor(row.author)}));
       expenses = [...serverExpenses, ...pendingTemps];
@@ -1692,7 +1704,7 @@
         setStatus('오프라인 캐시 표시 중 (동기화 실패)', true, 3500);
       }
     }).finally(() => {
-      endSync();
+      finishSyncToken(initToken);
     });
   </script>
 </body>
