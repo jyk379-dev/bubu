@@ -57,38 +57,35 @@
       position:relative;
     }
 
-    /* 카드 상단 새로고침 인디케이터 */
+    /* 카드 상단 새로고침 파란색 인디케이터 */
     .ptr-indicator {
       position:absolute;
       top:8px;
       left:50%;
       transform:translate3d(-50%, -38px, 0);
       height:30px;
-      padding:0 12px;
+      padding:0 10px;
       border-radius:999px;
-      background:#f8fafc;
-      border:1px solid var(--line);
+      background:var(--accent-soft);
+      border:1px solid #bfdbfe;
       display:inline-flex;
       align-items:center;
-      gap:6px;
-      font-size:11.5px;
-      font-weight:700;
-      color:var(--sub);
+      justify-content:center;
+      color:var(--accent);
       z-index:15;
       opacity:0;
       pointer-events:none;
-      box-shadow:0 2px 8px rgba(0,0,0,0.08);
-      transition:transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease, color 0.15s ease, border-color 0.15s ease;
+      box-shadow:0 2px 8px rgba(37,99,235,0.14);
+      transition:transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease, background 0.15s ease, border-color 0.15s ease;
     }
     .ptr-indicator.ready {
-      color:var(--accent);
-      background:var(--accent-soft);
-      border-color:#bfdbfe;
+      background:#dbeafe;
+      border-color:#93c5fd;
     }
     .ptr-spinner {
       width:13px;
       height:13px;
-      border:2px solid #cbd5e1;
+      border:2px solid #bfdbfe;
       border-top-color:var(--accent);
       border-radius:999px;
       transition:transform 0.12s ease;
@@ -315,11 +312,10 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- 상단 고정 영역: 달력 상하 위치 고정 및 인디케이터만 동작 -->
+    <!-- 상단 고정 영역: 달력 상하 위치 고정 및 파란색 인디케이터만 동작 -->
     <div class="card cal-card" id="calCard">
       <div class="ptr-indicator" id="ptrIndicator" aria-hidden="true">
         <span class="ptr-spinner" id="ptrSpinner"></span>
-        <span id="ptrText">당겨서 새로고침</span>
       </div>
 
       <div class="cal-inner" id="calInner">
@@ -1553,14 +1549,13 @@
       closeModal('settingsModal');
     }
 
-    /* ===== 상단 달력 영역: 상하 위치 고정 + 기존 인디케이터 새로고침 + 좌우 스와이프 ===== */
+    /* ===== 상단 달력 영역: 상하 위치 고정 + 파란색 인디케이터 새로고침 + 좌우 스와이프 ===== */
     (function setupCalendarGestures() {
       const calCard = document.getElementById('calCard');
       const calInner = document.getElementById('calInner');
       const swipeEl = document.getElementById('calSwipeArea');
       const trackEl = document.getElementById('calTrack');
       const ptrEl = document.getElementById('ptrIndicator');
-      const ptrText = document.getElementById('ptrText');
       const ptrSpinner = document.getElementById('ptrSpinner');
       const monthLabelEl = document.getElementById('monthLabel');
 
@@ -1590,14 +1585,7 @@
         ptrEl.style.opacity = String(Math.min(1, progress * 1.25));
         ptrEl.style.transform = `translate3d(-50%, ${indY}px, 0)`;
         ptrSpinner.style.transform = `rotate(${Math.round(progress * 260)}deg)`;
-
-        if (clamped >= refreshThreshold) {
-          ptrEl.classList.add('ready');
-          ptrText.textContent = '놓아서 새로고침';
-        } else {
-          ptrEl.classList.remove('ready');
-          ptrText.textContent = '당겨서 새로고침';
-        }
+        ptrEl.classList.toggle('ready', clamped >= refreshThreshold);
       }
 
       function resetAllVisuals() {
@@ -1623,7 +1611,6 @@
           ptrEl.style.opacity = '1';
           ptrEl.style.transform = 'translate3d(-50%, 6px, 0)';
           ptrEl.classList.add('ready', 'spinning');
-          ptrText.textContent = '새로고침 중...';
 
           safetyResetTimer = setTimeout(resetAllVisuals, 3000);
 
