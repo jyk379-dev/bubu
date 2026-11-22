@@ -22,7 +22,19 @@
     .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,0.03); }
 
     .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; }
+    .cal-title-wrap { display:flex; align-items:center; gap:6px; }
     .cal-title { font-size:17px; font-weight:700; white-space:nowrap; }
+    .sync-dot {
+      width:7px; height:7px; border-radius:999px;
+      background:var(--accent);
+      opacity:0; transition:opacity 0.2s ease;
+      animation:pulseSync 1.1s infinite ease-in-out;
+    }
+    .sync-dot.active { opacity:1; }
+    @keyframes pulseSync {
+      0%, 100% { transform:scale(0.85); opacity:0.5; }
+      50% { transform:scale(1.2); opacity:1; }
+    }
     .nav-group { display:flex; gap:6px; align-items:center; }
 
     .icon-btn {
@@ -92,7 +104,8 @@
     .btn-income { background:var(--income); color:#fff; margin-top:10px; }
     .btn-danger { background:var(--danger-soft); color:var(--danger); border:1px solid #fecaca; }
     .btn-ghost { background:#f4f4f5; color:var(--text); }
-    .status { font-size:12px; color:var(--sub); margin-top:8px; min-height:16px; }
+    .status { font-size:12px; color:var(--sub); margin-top:8px; min-height:16px; transition:opacity 0.2s; }
+    .status.error { color:var(--danger); font-weight:600; }
 
     .fab-add { position:fixed; right:20px; bottom:24px; width:56px; height:56px; border:none; border-radius:999px; background:var(--accent); color:#fff; box-shadow:0 6px 18px rgba(37,99,235,0.35); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:40; }
     .fab-add:active { transform:scale(0.95); }
@@ -167,7 +180,10 @@
   <div class="wrap">
     <div class="card">
       <div class="cal-header">
-        <div class="cal-title" id="monthLabel"></div>
+        <div class="cal-title-wrap">
+          <div class="cal-title" id="monthLabel"></div>
+          <span class="sync-dot" id="syncDot" title="동기화 중"></span>
+        </div>
         <div class="nav-group">
           <!-- 1. 생활비 통계 -->
           <button type="button" class="icon-btn" id="openSettleBtn" aria-label="생활비 통계" title="생활비 통계">
@@ -315,7 +331,7 @@
         <button type="button" class="stat-main-tab" data-stat-tab="cash">현금통장</button>
       </div>
 
-      <!-- 1. 생활비 탭 (연근+귤이 지출 기준, 텍스트는 '생활비'로만 표시) -->
+      <!-- 1. 생활비 탭 -->
       <div id="statTabLiving">
         <div class="summary-grid">
           <div class="sum-box">
@@ -341,7 +357,7 @@
         <div id="settleDetailContainer" style="display:none;"></div>
       </div>
 
-      <!-- 2. 부동산•차 탭: 부동산 지출, 차 지출 -->
+      <!-- 2. 부동산•차 탭 -->
       <div id="statTabPropertyCar" style="display:none;">
         <div class="summary-grid two-col">
           <div class="sum-box">
@@ -356,7 +372,7 @@
         <div id="propCarListContainer"></div>
       </div>
 
-      <!-- 3. 현금통장 탭: 현금 잔액, 지출 합계, 남은 잔액 -->
+      <!-- 3. 현금통장 탭 -->
       <div id="statTabCash" style="display:none;">
         <div class="summary-grid">
           <div class="sum-box">
@@ -382,7 +398,7 @@
     </div>
   </div>
 
-  <!-- 설정 모달 (예산 설정 + 카테고리/결제수단 설정) -->
+  <!-- 설정 모달 -->
   <div class="modal-backdrop" id="settingsModal">
     <div class="modal-sheet">
       <div class="modal-title">예산 · 카테고리 · 2단계 결제수단 설정</div>
@@ -423,6 +439,7 @@
     const NOTI_SEEN_IDS_KEY = 'couple_ledger_noti_seen_ids_v2';
     const LIVING_BUDGET_KEY = 'couple_ledger_living_budget_v1';
     const CASH_BALANCE_KEY = 'couple_ledger_cash_balance_v1';
+    const DATA_CACHE_KEY = 'couple_ledger_data_cache_v1';
 
     let expenses = [];
     let categories = ['식비','보험','카페','교통','회비','쇼핑','통신','생필품','관리비','구독서비스','마트','문화','건강'];
@@ -448,10 +465,83 @@
     let seenIdSet = loadSeenIdSet();
     let currentUnreadSnapshot = new Set();
 
+    // 백그라운드 동기화 카운터 및 임시 ID 추적
+    let pendingSyncCount = 0;
+    const tempIdToRealIdMap = new Map();
+    const deletedTempIds = new Set();
+    let statusTimer = null;
+
     const todayStr = formatYMD(new Date());
     let viewYear = Number(todayStr.slice(0, 4));
     let viewMonth = Number(todayStr.slice(5, 7)) - 1;
     let selectedDate = todayStr;
+
+    /* ===== 로컬 캐시(즉시 로딩) & 백그라운드 동기화 헬퍼 ===== */
+    function beginSync() {
+      pendingSyncCount++;
+      const dot = document.getElementById('syncDot');
+      if (dot) dot.classList.add('active');
+    }
+
+    function endSync() {
+      pendingSyncCount = Math.max(0, pendingSyncCount - 1);
+      if (pendingSyncCount === 0) {
+        const dot = document.getElementById('syncDot');
+        if (dot) dot.classList.remove('active');
+      }
+    }
+
+    function saveLocalCache() {
+      try {
+        const payload = {
+          expenses,
+          settings: { categories, incomeCategories, paymentGroups },
+          updatedAt: Date.now()
+        };
+        localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(payload));
+      } catch (e) {}
+    }
+
+    function loadLocalCache() {
+      try {
+        const raw = localStorage.getItem(DATA_CACHE_KEY);
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.expenses)) return false;
+
+        if (parsed.settings) {
+          if (Array.isArray(parsed.settings.categories) && parsed.settings.categories.length > 0) {
+            categories = parsed.settings.categories;
+          }
+          if (Array.isArray(parsed.settings.incomeCategories) && parsed.settings.incomeCategories.length > 0) {
+            incomeCategories = parsed.settings.incomeCategories;
+          }
+          if (parsed.settings.paymentGroups) {
+            paymentGroups = {
+              '카드': Array.isArray(parsed.settings.paymentGroups['카드']) && parsed.settings.paymentGroups['카드'].length > 0
+                ? parsed.settings.paymentGroups['카드'] : ['우리카드'],
+              '현금': Array.isArray(parsed.settings.paymentGroups['현금']) && parsed.settings.paymentGroups['현금'].length > 0
+                ? parsed.settings.paymentGroups['현금'] : ['농협체크']
+            };
+          }
+        }
+        expenses = parsed.expenses.map(row => ({ ...row, author: normalizeAuthor(row.author) }));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function refreshAllOpenViews() {
+      renderCalendar();
+      renderList();
+      if (document.getElementById('settleModal').classList.contains('open')) {
+        renderSettlement();
+      }
+      if (document.getElementById('notiModal').classList.contains('open')) {
+        renderNotifications();
+      }
+    }
 
     function loadLivingBudget() {
       try {
@@ -616,7 +706,21 @@
       const cleanSub=String(sub||'').trim();
       return cleanSub?`${cleanGrp} > ${cleanSub}`:cleanGrp;
     }
-    function setStatus(msg) { document.getElementById('statusMsg').textContent=msg||''; }
+    function setStatus(msg, isError = false, autoClearMs = 0) {
+      const el = document.getElementById('statusMsg');
+      el.textContent = msg || '';
+      el.classList.toggle('error', Boolean(isError));
+      if (statusTimer) {
+        clearTimeout(statusTimer);
+        statusTimer = null;
+      }
+      if (msg && autoClearMs > 0) {
+        statusTimer = setTimeout(() => {
+          el.textContent = '';
+          el.classList.remove('error');
+        }, autoClearMs);
+      }
+    }
 
     function fillSubSelect(selectEl,grp,selectedSub) {
       const list=(paymentGroups[grp]||[]).slice();
@@ -858,7 +962,8 @@
     }
 
     function openEditModal(id) {
-      const target=expenses.find(e=>String(e.id)===String(id));
+      const resolvedId = tempIdToRealIdMap.get(String(id)) || String(id);
+      const target=expenses.find(e=>String(e.id)===resolvedId);
       if(!target) return;
       const tType = getEntryType(target);
       const parsedPay = parsePaymentString(target.payment);
@@ -1251,11 +1356,11 @@
     document.getElementById('applyLivingBudgetBtn').onclick = () => {
       const val = Number(document.getElementById('settingLivingBudgetInput').value);
       if (!Number.isFinite(val) || val < 0) {
-        setStatus('생활비 예산은 0원 이상 입력해 주세요.');
+        setStatus('생활비 예산은 0원 이상 입력해 주세요.', true, 3000);
         return;
       }
       saveLivingBudget(val);
-      setStatus(`생활비 예산 ${val.toLocaleString()}원 적용됨`);
+      setStatus(`생활비 예산 ${val.toLocaleString()}원 적용됨`, false, 2000);
       if (document.getElementById('settleModal').classList.contains('open')) {
         renderSettlement();
       }
@@ -1288,25 +1393,58 @@
     document.getElementById('addCardTagBtn').onclick=()=>{const inp=document.getElementById('newCardInput'),val=inp.value.trim();if(val&&!draftCardList.includes(val)){draftCardList.push(val);renderSettingsTags();}inp.value='';};
     document.getElementById('addCashTagBtn').onclick=()=>{const inp=document.getElementById('newCashInput'),val=inp.value.trim();if(val&&!draftCashList.includes(val)){draftCashList.push(val);renderSettingsTags();}inp.value='';};
 
-    document.getElementById('saveSettingsBtn').onclick=async()=>{
+    /* ===== 낙관적 설정 저장 ===== */
+    document.getElementById('saveSettingsBtn').onclick=()=>{
       const budgetInputVal = Number(document.getElementById('settingLivingBudgetInput').value);
       if (Number.isFinite(budgetInputVal) && budgetInputVal >= 0) {
         saveLivingBudget(budgetInputVal);
       }
+
+      const prevCategories = categories.slice();
+      const prevIncomeCategories = incomeCategories.slice();
+      const prevPaymentGroups = JSON.parse(JSON.stringify(paymentGroups));
+
+      const nextGroups = {
+        '카드': draftCardList.length > 0 ? draftCardList.slice() : ['우리카드'],
+        '현금': draftCashList.length > 0 ? draftCashList.slice() : ['농협체크']
+      };
+
+      // 1. UI 즉시 적용
+      categories = draftCategories.slice();
+      incomeCategories = draftIncomeCategories.slice();
+      paymentGroups = nextGroups;
       closeSettingsModal();
-      setStatus('설정 저장 중...');
-      try{
-        const nextGroups={'카드':draftCardList.length>0?draftCardList.slice():['우리카드'],'현금':draftCashList.length>0?draftCashList.slice():['농협체크']};
-        const saved=await apiPost({action:'saveSettings',settings:{categories:draftCategories,incomeCategories:draftIncomeCategories,paymentGroups:nextGroups}});
-        categories=saved.categories||draftCategories;
-        incomeCategories=saved.incomeCategories||draftIncomeCategories;
-        paymentGroups=saved.paymentGroups||nextGroups;
-        renderSelectOptions();
-        if (document.getElementById('settleModal').classList.contains('open')) {
-          renderSettlement();
+      renderSelectOptions();
+      saveLocalCache();
+      if (document.getElementById('settleModal').classList.contains('open')) {
+        renderSettlement();
+      }
+      setStatus('');
+
+      // 2. 백그라운드 동기화
+      beginSync();
+      apiPost({
+        action: 'saveSettings',
+        settings: { categories, incomeCategories, paymentGroups: nextGroups }
+      }).then(saved => {
+        if (saved) {
+          categories = saved.categories || categories;
+          incomeCategories = saved.incomeCategories || incomeCategories;
+          paymentGroups = saved.paymentGroups || paymentGroups;
+          renderSelectOptions();
+          saveLocalCache();
         }
-        setStatus('설정 저장 완료');
-      }catch(err){setStatus('설정 저장 실패: '+err.message);}
+      }).catch(err => {
+        // 실패 시 롤백
+        categories = prevCategories;
+        incomeCategories = prevIncomeCategories;
+        paymentGroups = prevPaymentGroups;
+        renderSelectOptions();
+        saveLocalCache();
+        setStatus('설정 동기화 실패 (이전 설정으로 복구됨): ' + err.message, true, 4000);
+      }).finally(() => {
+        endSync();
+      });
     };
 
     function applyAuthorFilter(newAuthor) {
@@ -1315,26 +1453,26 @@
         c.classList.toggle('active', c.getAttribute('data-author')===authorFilter);
       });
       selectedSettleKey = null;
-      renderCalendar();
-      renderList();
-      if(document.getElementById('settleModal').classList.contains('open')) {
-        renderSettlement();
-      }
-      if(document.getElementById('notiModal').classList.contains('open')) {
-        renderNotifications();
-      }
+      refreshAllOpenViews();
     }
     document.querySelectorAll('.filter-row .chip').forEach(chip=>{
       chip.onclick=()=>applyAuthorFilter(chip.getAttribute('data-author'));
     });
 
-    document.getElementById('saveBtn').onclick=async()=>{
+    /* ===== 낙관적 내역 추가 ===== */
+    document.getElementById('saveBtn').onclick=()=>{
       const merchant=document.getElementById('merchant').value.trim();
       const amount=Number(document.getElementById('amount').value);
-      if(!amount||amount<=0){setStatus('금액을 1원 이상 입력해 주세요.');return;}
+      if(!amount||amount<=0){
+        setStatus('금액을 1원 이상 입력해 주세요.', true, 3000);
+        return;
+      }
       const payment=formatPaymentLabel(document.getElementById('paymentGroup').value,document.getElementById('paymentSub').value);
+      const currentType = addEntryType;
+      const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+
       const item={
-        type: addEntryType,
+        type: currentType,
         date: selectedDate,
         author: document.getElementById('author').value,
         category: document.getElementById('category').value,
@@ -1343,32 +1481,81 @@
         payment,
         memo: document.getElementById('memo').value.trim()
       };
+
+      const optimisticItem = {
+        ...item,
+        id: tempId,
+        author: normalizeAuthor(item.author)
+      };
+
+      // 1. UI 즉시 반영 및 폼 초기화
+      expenses.push(optimisticItem);
+      markItemIdAsSeen(tempId);
+      saveLocalCache();
+
+      document.getElementById('merchant').value='';
+      document.getElementById('amount').value='';
+      document.getElementById('memo').value='';
       closeAddModal();
-      setStatus('저장 중...');
-      try{
-        const saved=await apiPost({action:'add',item});
-        const normalizedSaved = {...saved, type: saved.type || addEntryType, author:normalizeAuthor(saved.author)};
-        expenses.push(normalizedSaved);
+      setStatus('');
+      refreshAllOpenViews();
 
-        markItemIdAsSeen(normalizedSaved.id);
+      // 2. 백그라운드 API 전송
+      beginSync();
+      apiPost({action:'add', item}).then(saved => {
+        const normalizedSaved = {
+          ...saved,
+          type: saved.type || currentType,
+          author: normalizeAuthor(saved.author)
+        };
+        const realId = String(normalizedSaved.id);
+        tempIdToRealIdMap.set(tempId, realId);
+        markItemIdAsSeen(realId);
 
-        document.getElementById('merchant').value='';
-        document.getElementById('amount').value='';
-        document.getElementById('memo').value='';
-        setStatus('저장 완료');
-        renderCalendar();
-        renderList();
-      }catch(err){setStatus('저장 실패: '+err.message);}
+        // 만약 응답 전에 사용자가 해당 임시 항목을 삭제한 경우 서버에서도 삭제 처리
+        if (deletedTempIds.has(tempId)) {
+          deletedTempIds.delete(tempId);
+          apiPost({ action: 'delete', id: realId }).catch(() => {});
+          return;
+        }
+
+        // 임시 항목이 아직 존재하면 서버 응답 객체(최신 수정값 유지)로 ID 교체
+        const idx = expenses.findIndex(e => String(e.id) === tempId);
+        if (idx !== -1) {
+          const currentLocal = expenses[idx];
+          expenses[idx] = { ...normalizedSaved, ...currentLocal, id: normalizedSaved.id };
+          saveLocalCache();
+          refreshAllOpenViews();
+        }
+      }).catch(err => {
+        // 실패 시 롤백
+        expenses = expenses.filter(e => String(e.id) !== tempId);
+        removeDeletedIdFromSeen(tempId);
+        saveLocalCache();
+        refreshAllOpenViews();
+        setStatus('저장 실패 (네트워크 오류로 취소됨): ' + err.message, true, 4500);
+      }).finally(() => {
+        endSync();
+      });
     };
 
-    document.getElementById('updateItemBtn').onclick=async()=>{
-      const id=document.getElementById('editId').value;
-      const amount=Number(document.getElementById('editAmount').value);
-      if(!amount||amount<=0){setStatus('금액을 1원 이상 입력해 주세요.');return;}
+    /* ===== 낙관적 내역 수정 ===== */
+    document.getElementById('updateItemBtn').onclick=()=>{
+      const rawId = document.getElementById('editId').value;
+      const id = tempIdToRealIdMap.get(String(rawId)) || String(rawId);
+      const amount = Number(document.getElementById('editAmount').value);
+      if(!amount||amount<=0){
+        setStatus('금액을 1원 이상 입력해 주세요.', true, 3000);
+        return;
+      }
+
+      const prevSnapshot = expenses.map(e => ({ ...e }));
       const payment=formatPaymentLabel(document.getElementById('editPaymentGroup').value,document.getElementById('editPaymentSub').value);
+      const currentType = editEntryType;
+
       const item={
         id,
-        type: editEntryType,
+        type: currentType,
         date: document.getElementById('editDate').value,
         author: document.getElementById('editAuthor').value,
         category: document.getElementById('editCategory').value,
@@ -1377,39 +1564,101 @@
         payment,
         memo: document.getElementById('editMemo').value.trim()
       };
+
+      const optimisticNormalized = {
+        ...item,
+        author: normalizeAuthor(item.author)
+      };
+
+      // 1. UI 즉시 반영
+      expenses = expenses.map(e => String(e.id) === id ? optimisticNormalized : e);
+      selectedDate = optimisticNormalized.date;
+      viewYear = Number(optimisticNormalized.date.slice(0, 4));
+      viewMonth = Number(optimisticNormalized.date.slice(5, 7)) - 1;
+      saveLocalCache();
+
       closeEditModal();
-      setStatus('수정 중...');
-      try{
-        const updated=await apiPost({action:'update',item});
-        const normalized={...updated, type: updated.type || editEntryType, author:normalizeAuthor(updated.author)};
-        expenses=expenses.map(e=>String(e.id)===String(normalized.id)?normalized:e);
-        selectedDate=normalized.date;
-        viewYear=Number(normalized.date.slice(0,4));
-        viewMonth=Number(normalized.date.slice(5,7))-1;
-        setStatus('수정 완료');
-        renderCalendar();
-        renderList();
-        updateFormDate();
-      }catch(err){setStatus('수정 실패: '+err.message);}
+      setStatus('');
+      refreshAllOpenViews();
+      updateFormDate();
+
+      // 아직 서버 ID가 발급되기 전인 임시 항목이면, add 응답 시 병합되도록 대기
+      if (id.startsWith('temp_')) return;
+
+      // 2. 백그라운드 API 전송
+      beginSync();
+      apiPost({action:'update', item}).then(updated => {
+        if (!updated) return;
+        const normalized = {
+          ...updated,
+          type: updated.type || currentType,
+          author: normalizeAuthor(updated.author)
+        };
+        expenses = expenses.map(e => String(e.id) === String(normalized.id) ? normalized : e);
+        saveLocalCache();
+        refreshAllOpenViews();
+      }).catch(err => {
+        // 실패 시 롤백
+        expenses = prevSnapshot;
+        saveLocalCache();
+        refreshAllOpenViews();
+        setStatus('수정 실패 (이전 내용으로 복구됨): ' + err.message, true, 4500);
+      }).finally(() => {
+        endSync();
+      });
     };
 
-    document.getElementById('deleteItemBtn').onclick=async()=>{
-      const id=document.getElementById('editId').value;
+    /* ===== 낙관적 내역 삭제 ===== */
+    document.getElementById('deleteItemBtn').onclick=()=>{
+      const rawId = document.getElementById('editId').value;
+      const id = tempIdToRealIdMap.get(String(rawId)) || String(rawId);
+      const prevSnapshot = expenses.map(e => ({ ...e }));
+
+      // 1. UI 즉시 삭제
+      expenses = expenses.filter(e => String(e.id) !== id);
+      removeDeletedIdFromSeen(id);
+      saveLocalCache();
+
       closeEditModal();
-      setStatus('삭제 중...');
-      try{
-        const res=await apiPost({action:'delete',id});
-        expenses=expenses.filter(e=>String(e.id)!==String(res.deletedId));
-        removeDeletedIdFromSeen(res.deletedId);
-        setStatus('삭제 완료');
-        renderCalendar();
-        renderList();
-      }catch(err){setStatus('삭제 실패: '+err.message);}
+      setStatus('');
+      refreshAllOpenViews();
+
+      // 임시 항목인 경우 삭제 플래그만 기록
+      if (id.startsWith('temp_')) {
+        deletedTempIds.add(id);
+        return;
+      }
+
+      // 2. 백그라운드 API 전송
+      beginSync();
+      apiPost({action:'delete', id}).then(res => {
+        if (res && res.deletedId) {
+          removeDeletedIdFromSeen(res.deletedId);
+        }
+      }).catch(err => {
+        // 실패 시 롤백
+        expenses = prevSnapshot;
+        saveLocalCache();
+        refreshAllOpenViews();
+        setStatus('삭제 실패 (복구됨): ' + err.message, true, 4500);
+      }).finally(() => {
+        endSync();
+      });
     };
     document.getElementById('closeModalBtn').onclick=closeEditModal;
 
-    // 초기 데이터 로드
-    renderSelectOptions();renderCalendar();renderList();updateFormDate();setStatus('데이터 불러오는 중...');
+    /* ===== 초기 데이터 로드 (캐시 즉시 표시 후 백그라운드 최신화) ===== */
+    const hasCache = loadLocalCache();
+    renderSelectOptions();
+    renderCalendar();
+    renderList();
+    updateFormDate();
+
+    if (!hasCache) {
+      setStatus('데이터 불러오는 중...');
+    }
+
+    beginSync();
     apiGetInit().then(data=>{
       const rows=Array.isArray(data.expenses)?data.expenses:[];
       if(data.settings){
@@ -1423,16 +1672,28 @@
         }
         renderSelectOptions();
       }
-      expenses=rows.map(row=>({...row, author:normalizeAuthor(row.author)}));
+
+      // 동기화 도중 방금 추가되어 아직 서버 응답 대기 중인 임시 항목 보존
+      const pendingTemps = expenses.filter(e => String(e.id).startsWith('temp_'));
+      const serverExpenses = rows.map(row=>({...row, author:normalizeAuthor(row.author)}));
+      expenses = [...serverExpenses, ...pendingTemps];
 
       if (seenIdSet === null) {
         markAllCurrentAsRead();
       }
 
+      saveLocalCache();
       setStatus('');
-      renderCalendar();
-      renderList();
-    }).catch(err=>setStatus('불러오기 실패: '+err.message));
+      refreshAllOpenViews();
+    }).catch(err=>{
+      if (!hasCache) {
+        setStatus('불러오기 실패: '+err.message, true);
+      } else {
+        setStatus('오프라인 캐시 표시 중 (동기화 실패)', true, 3500);
+      }
+    }).finally(() => {
+      endSync();
+    });
   </script>
 </body>
 </html>
