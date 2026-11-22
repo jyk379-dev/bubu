@@ -30,7 +30,7 @@
       max-width:520px;
       height:100dvh;
       margin:0 auto;
-      padding:12px 12px 0;
+      padding:10px 12px 0;
       display:flex;
       flex-direction:column;
       overflow:hidden;
@@ -41,14 +41,14 @@
       background:var(--card);
       border:1px solid var(--line);
       border-radius:16px;
-      padding:14px;
+      padding:12px 14px;
       box-shadow:0 1px 2px rgba(0,0,0,0.03);
     }
 
     /* 상단 달력 카드: 외곽 및 내부 상하 위치 고정 */
     .cal-card {
       flex-shrink:0;
-      margin-bottom:12px;
+      margin-bottom:10px;
       position:relative;
       z-index:10;
       overflow:hidden;
@@ -78,7 +78,7 @@
       padding-bottom:96px;
     }
 
-    .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; }
+    .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; }
     .cal-title-wrap { display:flex; align-items:center; gap:6px; }
     .cal-title { font-size:17px; font-weight:700; white-space:nowrap; }
     .sync-dot {
@@ -94,9 +94,86 @@
     }
     .nav-group { display:flex; gap:6px; align-items:center; }
 
+    /* 메인 연월과 달력 사이 3개 예산 요약 아이콘 바 */
+    .cal-budget-strip {
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:6px;
+      margin-bottom:8px;
+    }
+    .cal-budget-chip {
+      display:flex;
+      align-items:center;
+      gap:6px;
+      min-width:0;
+      padding:6px 8px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:#f8fafc;
+      text-align:left;
+      cursor:pointer;
+      color:var(--text);
+      transition:background 0.15s, border-color 0.15s;
+    }
+    .cal-budget-chip:active {
+      background:#f1f5f9;
+      transform:scale(0.985);
+    }
+    .cal-chip-icon {
+      width:24px;
+      height:24px;
+      border-radius:8px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      flex-shrink:0;
+    }
+    .cal-chip-icon.budget {
+      background:var(--accent-soft);
+      color:var(--accent);
+    }
+    .cal-chip-icon.spent {
+      background:var(--danger-soft);
+      color:var(--danger);
+    }
+    .cal-chip-icon.remain {
+      background:var(--income-soft);
+      color:var(--income);
+    }
+    .cal-chip-icon.remain.over {
+      background:var(--danger-soft);
+      color:var(--danger);
+    }
+    .cal-chip-text {
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      line-height:1.15;
+    }
+    .cal-chip-label {
+      font-size:10px;
+      font-weight:600;
+      color:var(--sub);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .cal-chip-val {
+      font-size:11.5px;
+      font-weight:700;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      margin-top:1px;
+    }
+    .cal-chip-val.budget { color:var(--accent); }
+    .cal-chip-val.spent { color:var(--danger); }
+    .cal-chip-val.remain { color:var(--income); }
+    .cal-chip-val.remain.over { color:var(--danger); }
+
     .icon-btn {
       position:relative;
-      width:36px; height:36px;
+      width:34px; height:34px;
       border:1px solid var(--line);
       background:#fff;
       border-radius:10px;
@@ -136,15 +213,15 @@
       width:33.333333%;
       flex-shrink:0;
     }
-    .weekdays,.days { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center; }
-    .weekdays div { font-size:12px; color:var(--sub); padding:4px 0; font-weight:600; }
-    .day-btn { border:1px solid transparent; background:transparent; border-radius:10px; min-height:54px; padding:4px 2px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; cursor:pointer; color:var(--text); }
+    .weekdays,.days { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; text-align:center; }
+    .weekdays div { font-size:11.5px; color:var(--sub); padding:2px 0; font-weight:600; }
+    .day-btn { border:1px solid transparent; background:transparent; border-radius:10px; min-height:50px; padding:3px 2px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; cursor:pointer; color:var(--text); }
     .day-btn.muted { color:#d4d4d8; cursor:default; }
-    .day-btn.today .day-num { background:#18181b; color:#fff; width:22px; height:22px; line-height:22px; border-radius:999px; }
+    .day-btn.today .day-num { background:#18181b; color:#fff; width:21px; height:21px; line-height:21px; border-radius:999px; }
     .day-btn.selected { background:var(--accent-soft); border-color:var(--accent); font-weight:700; }
-    .day-num { font-size:13px; }
-    .day-inc { font-size:9.5px; color:var(--income); margin-top:2px; white-space:nowrap; overflow:hidden; max-width:100%; font-weight:600; }
-    .day-sum { font-size:9.5px; color:var(--danger); margin-top:1px; white-space:nowrap; overflow:hidden; max-width:100%; }
+    .day-num { font-size:12.5px; }
+    .day-inc { font-size:9px; color:var(--income); margin-top:1px; white-space:nowrap; overflow:hidden; max-width:100%; font-weight:600; }
+    .day-sum { font-size:9px; color:var(--danger); margin-top:1px; white-space:nowrap; overflow:hidden; max-width:100%; }
 
     .list-top { flex-shrink:0; display:flex; justify-content:space-between; align-items:baseline; padding-bottom:8px; border-bottom:1px solid #f4f4f5; gap:8px; }
     .list-title { font-size:15px; font-weight:700; }
@@ -152,15 +229,15 @@
     .tot-inc { color:var(--income); }
     .tot-exp { color:var(--danger); }
 
-    .item { display:flex; justify-content:space-between; align-items:center; padding:11px 4px; border-top:1px solid #f0f0f3; cursor:pointer; }
+    .item { display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-top:1px solid #f0f0f3; cursor:pointer; }
     .item:first-child { border-top:none; }
     .item:active { background:#fafafa; }
-    .item-main { font-size:14px; font-weight:600; }
-    .item-sub { font-size:12px; color:var(--sub); margin-top:2px; }
-    .item-amt { font-size:14px; font-weight:700; white-space:nowrap; margin-left:8px; }
+    .item-main { font-size:13.5px; font-weight:600; }
+    .item-sub { font-size:11.5px; color:var(--sub); margin-top:2px; }
+    .item-amt { font-size:13.5px; font-weight:700; white-space:nowrap; margin-left:8px; }
     .item-amt.exp { color:var(--danger); }
     .item-amt.inc { color:var(--income); }
-    .empty { text-align:center; color:var(--sub); padding:28px 0; font-size:13px; }
+    .empty { text-align:center; color:var(--sub); padding:22px 0; font-size:12.5px; }
 
     /* 수입/지출 토글 탭 */
     .type-toggle { display:grid; grid-template-columns:1fr 1fr; gap:6px; background:#f4f4f5; padding:4px; border-radius:12px; margin-bottom:10px; }
@@ -172,8 +249,9 @@
     .form-grid > div { min-width:0; }
     .form-grid input,.form-grid select { min-width:0; }
     .form-grid .full { grid-column:1 / -1; }
-    input,select { width:100%; padding:11px; border:1px solid var(--line); border-radius:10px; font-size:15px; background:#fff; color:var(--text); }
-    .btn { width:100%; padding:12px; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; }
+    input,select { width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:10px; font-size:14.5px; background:#fff; color:var(--text); }
+    .btn { width:100%; padding:11px; border:none; border-radius:11px; font-size:14px; font-weight:700; cursor:pointer; }
+    .btn-sm { padding:8px 10px; font-size:12.5px; border-radius:9px; }
     .btn-primary { background:var(--accent); color:#fff; margin-top:10px; }
     .btn-income { background:var(--income); color:#fff; margin-top:10px; }
     .btn-danger { background:var(--danger-soft); color:var(--danger); border:1px solid #fecaca; }
@@ -181,7 +259,7 @@
     .status { font-size:12px; color:var(--sub); margin-top:8px; min-height:16px; transition:opacity 0.2s; }
     .status.error { color:var(--danger); font-weight:600; }
 
-    .fab-add { position:fixed; right:20px; bottom:24px; width:56px; height:56px; border:none; border-radius:999px; background:var(--accent); color:#fff; box-shadow:0 6px 18px rgba(37,99,235,0.35); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:40; }
+    .fab-add { position:fixed; right:20px; bottom:24px; width:54px; height:54px; border:none; border-radius:999px; background:var(--accent); color:#fff; box-shadow:0 6px 18px rgba(37,99,235,0.35); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:40; }
     .fab-add:active { transform:scale(0.95); }
 
     /* 모든 모달: 내용에 맞춰 표시하고, 화면을 넘으면 내부 스크롤 */
@@ -196,13 +274,18 @@
       overscroll-behavior-y:contain;
       -webkit-overflow-scrolling:touch;
       background:#fff;
-      border-radius:20px 20px 0 0;
-      padding:18px 16px 24px;
+      border-radius:18px 18px 0 0;
+      padding:16px 14px 20px;
     }
-    #settleModal .modal-sheet { height:80dvh; max-height:80dvh; }
-    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
-    .modal-title { font-size:16px; font-weight:700; }
-    .modal-sub { font-size:12px; color:var(--sub); margin-top:2px; font-weight:500; }
+    /* 통계 모달: 컴팩트 효율형 시트 */
+    #settleModal .modal-sheet {
+      height:auto;
+      max-height:68dvh;
+      padding:14px 14px 16px;
+    }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; }
+    .modal-title { font-size:15px; font-weight:700; }
+    .modal-sub { font-size:11px; color:var(--sub); margin-top:1px; font-weight:500; }
     .modal-actions { display:grid; grid-template-columns:1fr 2fr; gap:8px; margin-top:12px; }
 
     /* 설정 모달 태그 */
@@ -218,46 +301,134 @@
     .tag-pill { display:inline-flex; align-items:center; gap:6px; background:#f4f4f5; border:1px solid var(--line); border-radius:999px; padding:5px 10px; font-size:13px; font-weight:600; }
     .tag-del { border:none; background:transparent; color:var(--danger); font-size:14px; font-weight:700; cursor:pointer; padding:0 2px; }
     .add-inline { display:flex; gap:6px; }
-    .add-inline input { padding:9px 11px; font-size:14px; }
-    .add-inline button { width:auto; padding:0 14px; border-radius:10px; border:none; background:var(--text); color:#fff; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .add-inline input { padding:8px 10px; font-size:13.5px; }
+    .add-inline button { width:auto; padding:0 12px; border-radius:9px; border:none; background:var(--text); color:#fff; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap; }
 
-    /* 통계 모달 스타일 */
-    .stat-main-tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; background:#f4f4f5; padding:4px; border-radius:12px; margin-bottom:12px; }
-    .stat-main-tab { border:none; background:transparent; padding:8px 6px; border-radius:9px; font-size:13px; font-weight:700; color:var(--sub); cursor:pointer; }
-    .stat-main-tab.active { background:#fff; color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+    /* 컴팩트 통계 모달 스타일 */
+    .settle-toolbar {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:6px;
+      margin-bottom:8px;
+    }
+    .stat-main-tabs {
+      flex:1;
+      min-width:0;
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:3px;
+      background:#f4f4f5;
+      padding:3px;
+      border-radius:10px;
+    }
+    .stat-main-tab {
+      border:none;
+      background:transparent;
+      padding:6px 4px;
+      border-radius:7px;
+      font-size:12px;
+      font-weight:700;
+      color:var(--sub);
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .stat-main-tab.active { background:#fff; color:var(--text); box-shadow:0 1px 2px rgba(0,0,0,0.08); }
 
-    .summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
-    .summary-grid.two-col { grid-template-columns:repeat(2,1fr); }
-    .sum-box { background:#f8fafc; border:1px solid var(--line); border-radius:12px; padding:10px 8px; text-align:center; }
-    .sum-box-label { font-size:11px; color:var(--sub); font-weight:600; margin-bottom:4px; }
-    .sum-box-val { font-size:13.5px; font-weight:700; word-break:keep-all; }
+    .month-stepper {
+      display:inline-flex;
+      align-items:center;
+      gap:2px;
+      flex-shrink:0;
+    }
+    .month-stepper .icon-btn {
+      width:28px;
+      height:28px;
+      border-radius:8px;
+    }
+
+    .summary-grid.compact {
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:6px;
+      margin-bottom:8px;
+    }
+    .summary-grid.compact.two-col {
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+    .sum-box.compact {
+      background:#f8fafc;
+      border:1px solid var(--line);
+      border-radius:9px;
+      padding:6px 6px;
+      text-align:center;
+      min-width:0;
+    }
+    .sum-box.compact .sum-box-label {
+      font-size:10px;
+      color:var(--sub);
+      font-weight:600;
+      margin-bottom:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .sum-box.compact .sum-box-val {
+      font-size:12px;
+      font-weight:700;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
     .sum-box-val.inc { color:var(--income); }
     .sum-box-val.exp { color:var(--danger); }
     .sum-box-val.budget { color:var(--accent); }
 
-    .settle-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
-    .settle-tab { border:1px solid var(--line); background:#fff; border-radius:10px; padding:8px; font-size:13px; font-weight:700; color:var(--sub); cursor:pointer; }
+    .settle-subbar {
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin-bottom:8px;
+    }
+    .settle-tabs {
+      flex:1;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:4px;
+    }
+    .settle-tab {
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:8px;
+      padding:5px 6px;
+      font-size:11.5px;
+      font-weight:700;
+      color:var(--sub);
+      cursor:pointer;
+    }
     .settle-tab.active { background:var(--text); color:#fff; border-color:var(--text); }
 
-    .stat-list { border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:12px; }
+    .stat-list { border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:6px; }
     .stat-group + .stat-group { border-top:1px solid #f0f0f3; }
-    .stat-row { padding:10px 12px; border-top:1px solid #f0f0f3; cursor:pointer; background:#fff; transition:background 0.15s; }
+    .stat-row { padding:7px 10px; border-top:1px solid #f0f0f3; cursor:pointer; background:#fff; transition:background 0.15s; }
     .stat-row:first-child { border-top:none; }
     .stat-row.active { background:var(--accent-soft); }
-    .stat-row-top { display:flex; justify-content:space-between; align-items:center; font-size:13.5px; font-weight:600; }
-    .stat-row-left { display:flex; align-items:center; gap:6px; }
-    .badge-type { font-size:10px; padding:2px 6px; border-radius:999px; font-weight:700; }
+    .stat-row-top { display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:600; gap:6px; }
+    .stat-row-left { display:flex; align-items:center; gap:5px; min-width:0; overflow:hidden; }
+    .stat-row-left > span:nth-child(2) { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .badge-type { font-size:9.5px; padding:1px 5px; border-radius:999px; font-weight:700; flex-shrink:0; }
     .badge-type.exp { background:var(--danger-soft); color:var(--danger); }
     .badge-type.inc { background:var(--income-soft); color:var(--income); }
-    .stat-bar-bg { height:5px; background:#f1f5f9; border-radius:999px; margin-top:6px; overflow:hidden; }
+    .stat-bar-bg { height:4px; background:#f1f5f9; border-radius:999px; margin-top:4px; overflow:hidden; }
     .stat-bar-fill { height:100%; border-radius:999px; }
     .stat-bar-fill.exp { background:var(--danger); }
     .stat-bar-fill.inc { background:var(--income); }
 
-    .detail-box { background:#fafafa; border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:8px; }
-    .detail-box-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-    .detail-box-title { font-size:13px; font-weight:700; color:var(--accent); }
-    .detail-close { border:none; background:transparent; color:var(--sub); font-size:12px; font-weight:600; cursor:pointer; }
+    .detail-box { background:#fafafa; border:1px solid var(--line); border-radius:9px; padding:7px 9px; margin:4px 8px 8px; }
+    .detail-box-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+    .detail-box-title { font-size:11.5px; font-weight:700; color:var(--accent); }
+    .detail-close { border:none; background:transparent; color:var(--sub); font-size:11px; font-weight:600; cursor:pointer; }
+    .detail-box .item { padding:7px 2px; }
 
     /* 알림 리스트 스타일 */
     .noti-list { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
@@ -272,7 +443,7 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- 상단 고정 영역: 달력 상하 위치 고정, 당김 시 동기화 + sync-dot 동작 -->
+    <!-- 상단 고정 영역: 연월 헤더 + 3개 예산 요약 아이콘 + 달력 -->
     <div class="card cal-card" id="calCard">
       <div class="cal-inner" id="calInner">
         <div class="cal-header">
@@ -283,18 +454,51 @@
           <div class="nav-group">
             <!-- 1. 생활비 통계 -->
             <button type="button" class="icon-btn" id="openSettleBtn" aria-label="생활비 통계" title="생활비 통계">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
             </button>
             <!-- 2. 알림 -->
             <button type="button" class="icon-btn" id="openNotiBtn" aria-label="알림">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
               <span class="icon-badge" id="notiBadge"></span>
             </button>
             <!-- 3. 설정 -->
             <button type="button" class="icon-btn" id="openSettingsBtn" aria-label="설정">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
           </div>
+        </div>
+
+        <!-- 메인 연월과 달력 사이: 생활비예산 · 지출합계 · 남은예산 3개 아이콘 요약 -->
+        <div class="cal-budget-strip" id="calBudgetStrip">
+          <button type="button" class="cal-budget-chip" id="calChipBudget" title="생활비 예산 보기/설정">
+            <span class="cal-chip-icon budget" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+            </span>
+            <span class="cal-chip-text">
+              <span class="cal-chip-label">생활비예산</span>
+              <span class="cal-chip-val budget" id="calBudgetVal">0원</span>
+            </span>
+          </button>
+
+          <button type="button" class="cal-budget-chip" id="calChipSpent" title="생활비 지출합계 통계 보기">
+            <span class="cal-chip-icon spent" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline><polyline points="16 17 22 17 22 11"></polyline></svg>
+            </span>
+            <span class="cal-chip-text">
+              <span class="cal-chip-label">지출합계</span>
+              <span class="cal-chip-val spent" id="calSpentVal">-0원</span>
+            </span>
+          </button>
+
+          <button type="button" class="cal-budget-chip" id="calChipRemain" title="생활비 남은예산 통계 보기">
+            <span class="cal-chip-icon remain" id="calRemainIcon" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+            </span>
+            <span class="cal-chip-text">
+              <span class="cal-chip-label">남은예산</span>
+              <span class="cal-chip-val remain" id="calRemainVal">0원</span>
+            </span>
+          </button>
         </div>
 
         <!-- 좌우 연속 슬라이딩 달력 트랙 (이전달 | 현재달 | 다음달) -->
@@ -326,7 +530,7 @@
   </div>
 
   <button type="button" class="fab-add" id="openAddBtn" aria-label="내역 추가">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
   </button>
 
   <!-- 추가 모달 -->
@@ -402,7 +606,7 @@
     </div>
   </div>
 
-  <!-- 통계 모달: 분류 [생활비 | 부동산•차 | 현금통장] -->
+  <!-- 컴팩트 통계 모달: 분류 [생활비 | 부동산•차 | 현금통장] -->
   <div class="modal-backdrop" id="settleModal">
     <div class="modal-sheet">
       <div class="modal-header">
@@ -410,42 +614,48 @@
           <div class="modal-title" id="settleTitle">생활비 통계</div>
           <div class="modal-sub" id="settlePeriodLabel"></div>
         </div>
-        <div class="nav-group">
+        <button type="button" class="btn btn-ghost btn-sm" style="width:auto;" id="closeSettleBtn">닫기</button>
+      </div>
+
+      <div class="settle-toolbar">
+        <div class="stat-main-tabs" id="statMainTabs">
+          <button type="button" class="stat-main-tab active" data-stat-tab="living">생활비</button>
+          <button type="button" class="stat-main-tab" data-stat-tab="property_car">부동산•차</button>
+          <button type="button" class="stat-main-tab" data-stat-tab="cash">현금통장</button>
+        </div>
+        <div class="month-stepper">
           <button type="button" class="icon-btn" id="settlePrevMonth" aria-label="이전 통계 월">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
           <button type="button" class="icon-btn" id="settleNextMonth" aria-label="다음 통계 월">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
         </div>
       </div>
 
-      <div class="stat-main-tabs" id="statMainTabs">
-        <button type="button" class="stat-main-tab active" data-stat-tab="living">생활비</button>
-        <button type="button" class="stat-main-tab" data-stat-tab="property_car">부동산•차</button>
-        <button type="button" class="stat-main-tab" data-stat-tab="cash">현금통장</button>
-      </div>
-
       <!-- 1. 생활비 탭 -->
       <div id="statTabLiving">
-        <div class="summary-grid">
-          <div class="sum-box">
+        <div class="summary-grid compact">
+          <div class="sum-box compact">
             <div class="sum-box-label">생활비 예산</div>
             <div class="sum-box-val budget" id="livingBudgetVal">0원</div>
           </div>
-          <div class="sum-box">
+          <div class="sum-box compact">
             <div class="sum-box-label">지출 합계</div>
             <div class="sum-box-val exp" id="livingSpentVal">0원</div>
           </div>
-          <div class="sum-box">
+          <div class="sum-box compact">
             <div class="sum-box-label">남은 예산</div>
             <div class="sum-box-val" id="livingRemainVal">0원</div>
           </div>
         </div>
 
-        <div class="settle-tabs">
-          <button type="button" class="settle-tab active" data-mode="category">카테고리별</button>
-          <button type="button" class="settle-tab" data-mode="payment">결제 수단별</button>
+        <div class="settle-subbar">
+          <div class="settle-tabs">
+            <button type="button" class="settle-tab active" data-mode="category">카테고리별</button>
+            <button type="button" class="settle-tab" data-mode="payment">결제 수단별</button>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" style="width:auto; flex-shrink:0;" id="quickBudgetEditBtn">예산 수정</button>
         </div>
 
         <div id="settleStatContainer"></div>
@@ -453,12 +663,12 @@
 
       <!-- 2. 부동산•차 탭 -->
       <div id="statTabPropertyCar" style="display:none;">
-        <div class="summary-grid two-col">
-          <div class="sum-box">
+        <div class="summary-grid compact two-col">
+          <div class="sum-box compact">
             <div class="sum-box-label">부동산 지출</div>
             <div class="sum-box-val exp" id="realEstateExpVal">0원</div>
           </div>
-          <div class="sum-box">
+          <div class="sum-box compact">
             <div class="sum-box-label">차 지출</div>
             <div class="sum-box-val exp" id="carExpVal">0원</div>
           </div>
@@ -468,27 +678,25 @@
 
       <!-- 3. 현금통장 탭 -->
       <div id="statTabCash" style="display:none;">
-        <div class="summary-grid">
-          <div class="sum-box">
+        <div class="summary-grid compact">
+          <div class="sum-box compact">
             <div class="sum-box-label">현금 잔액</div>
             <div class="sum-box-val budget" id="cashBalanceVal">0원</div>
           </div>
-          <div class="sum-box">
+          <div class="sum-box compact">
             <div class="sum-box-label">지출 합계</div>
             <div class="sum-box-val exp" id="cashSpentVal">0원</div>
           </div>
-          <div class="sum-box">
+          <div class="sum-box compact">
             <div class="sum-box-label">남은 잔액</div>
             <div class="sum-box-val" id="cashRemainVal">0원</div>
           </div>
         </div>
-        <div class="add-inline" style="margin-bottom:10px;">
-          <button type="button" id="editCashBalanceBtn" style="width:100%; padding:9px 12px;">현금 잔액 수정</button>
+        <div class="add-inline" style="margin-bottom:8px;">
+          <button type="button" id="editCashBalanceBtn" style="width:100%; padding:7px 10px;">현금 잔액 수정</button>
         </div>
         <div id="cashListContainer"></div>
       </div>
-
-      <button type="button" class="btn btn-ghost" style="margin-top:12px;" id="closeSettleBtn">닫기</button>
     </div>
   </div>
 
@@ -664,6 +872,7 @@
     }
 
     function refreshAllOpenViews() {
+      renderCalendarBudgetStrip();
       renderCalendar();
       renderList();
       if (document.getElementById('settleModal').classList.contains('open')) {
@@ -690,6 +899,18 @@
       try {
         localStorage.setItem(LIVING_BUDGET_KEY, String(n));
       } catch (e) {}
+    }
+
+    function promptLivingBudget() {
+      const input = window.prompt('생활비 예산을 입력해 주세요 (원):', livingBudget > 0 ? String(livingBudget) : '');
+      if (input === null) return false;
+      const parsed = Number(String(input).replace(/,/g, '').trim());
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        window.alert('0 이상의 숫자로 입력해 주세요.');
+        return promptLivingBudget();
+      }
+      saveLivingBudget(parsed);
+      return true;
     }
 
     function loadCashBalance() {
@@ -808,6 +1029,17 @@
       if (!n) return '';
       if (n>=10000) return `${(n/10000).toFixed(n%10000===0?0:1)}만`;
       return `${n.toLocaleString()}`;
+    }
+    function formatCompactWon(n, prefix = '') {
+      const abs = Math.abs(Number(n || 0));
+      const sign = Number(n || 0) < 0 ? '-' : prefix;
+      if (abs === 0) return `${sign}0원`;
+      if (abs >= 10000) {
+        const man = abs / 10000;
+        const formatted = Number.isInteger(man) ? String(man) : man.toFixed(1).replace(/\.0$/, '');
+        return `${sign}${formatted}만`;
+      }
+      return `${sign}${abs.toLocaleString()}원`;
     }
     function escapeHtml(str) {
       return String(str).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -958,6 +1190,35 @@
       });
     }
 
+    /* ===== 메인 연월과 달력 사이: 생활비예산 · 지출합계 · 남은예산 업데이트 ===== */
+    function renderCalendarBudgetStrip() {
+      const cycle = getCycleRange(viewYear, viewMonth);
+      const livingSpent = expenses
+        .filter(e => e.date && e.date >= cycle.startStr && e.date <= cycle.endStr)
+        .filter(e => normalizeGroup(e.author) === '생활비' && getEntryType(e) === 'expense')
+        .reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
+
+      const remaining = livingBudget - livingSpent;
+
+      const budgetValEl = document.getElementById('calBudgetVal');
+      const spentValEl = document.getElementById('calSpentVal');
+      const remainValEl = document.getElementById('calRemainVal');
+      const remainIconEl = document.getElementById('calRemainIcon');
+
+      budgetValEl.textContent = formatCompactWon(livingBudget);
+      budgetValEl.title = `생활비 예산: ${livingBudget.toLocaleString()}원`;
+
+      spentValEl.textContent = formatCompactWon(-livingSpent);
+      spentValEl.title = `생활비 지출합계: -${livingSpent.toLocaleString()}원`;
+
+      remainValEl.textContent = formatCompactWon(remaining);
+      remainValEl.title = `생활비 남은예산: ${remaining >= 0 ? '' : '-'}${Math.abs(remaining).toLocaleString()}원`;
+
+      const isOver = remaining < 0;
+      remainValEl.classList.toggle('over', isOver);
+      remainIconEl.classList.toggle('over', isOver);
+    }
+
     function shiftMonthDate(year, monthIndex, deltaMonths) {
       const d = new Date(year, monthIndex + deltaMonths, 1);
       return { year: d.getFullYear(), monthIndex: d.getMonth() };
@@ -1000,6 +1261,7 @@
           if (clickedYear !== viewYear || clickedMonth !== viewMonth) {
             viewYear = clickedYear;
             viewMonth = clickedMonth;
+            renderCalendarBudgetStrip();
           }
           const scrollArea = document.getElementById('listScrollArea');
           if (scrollArea) scrollArea.scrollTop = 0;
@@ -1018,6 +1280,7 @@
       const trackEl = document.getElementById('calTrack');
 
       monthLabel.textContent = `${viewYear}년 ${viewMonth + 1}월`;
+      renderCalendarBudgetStrip();
 
       const dailyExpSum = {};
       const dailyIncSum = {};
@@ -1266,7 +1529,7 @@
 
     function renderSettlement() {
       const cycle = getCycleRange(viewYear, viewMonth);
-      document.getElementById('settlePeriodLabel').textContent = `통계 기간: ${cycle.label} (25일~24일)`;
+      document.getElementById('settlePeriodLabel').textContent = `${cycle.label} (25일~24일)`;
 
       const monthItems = expenses.filter(e => e.date && e.date >= cycle.startStr && e.date <= cycle.endStr);
 
@@ -1301,7 +1564,7 @@
         const statContainer = document.getElementById('settleStatContainer');
 
         if (groups.length === 0) {
-          statContainer.innerHTML = '<div class="empty">해당 기간에 등록된 생활비 지출이 없습니다.</div>';
+          statContainer.innerHTML = '<div class="empty">등록된 생활비 지출이 없습니다.</div>';
           selectedSettleKey = null;
           return;
         }
@@ -1319,7 +1582,7 @@
           const detailMarkup = isSelected ? `
             <div class="detail-box">
               <div class="detail-box-header">
-                <div class="detail-box-title">생활비 · ${escapeHtml(g.key)} (${sortedItems.length}건)</div>
+                <div class="detail-box-title">${escapeHtml(g.key)} (${sortedItems.length}건)</div>
                 <button type="button" class="detail-close">접기 ✕</button>
               </div>
               <div>
@@ -1327,7 +1590,7 @@
                   <div class="item" data-id="${escapeHtml(item.id)}">
                     <div>
                       <div class="item-main">${escapeHtml(item.date.slice(5))} · ${escapeHtml(item.merchant || item.category)}</div>
-                      <div class="item-sub">${escapeHtml(normalizeGroup(item.author))} · ${settleMode === 'category' ? escapeHtml(item.payment || '') : escapeHtml(item.category)}${item.memo ? ' · ' + escapeHtml(item.memo) : ''}</div>
+                      <div class="item-sub">${settleMode === 'category' ? escapeHtml(item.payment || '') : escapeHtml(item.category)}${item.memo ? ' · ' + escapeHtml(item.memo) : ''}</div>
                     </div>
                     <div class="item-amt exp">-${Number(item.amount || 0).toLocaleString()}원</div>
                   </div>
@@ -1341,9 +1604,9 @@
                 <div class="stat-row-left">
                   <span class="badge-type exp">생활비</span>
                   <span>${escapeHtml(g.key)}</span>
-                  <span style="font-size:11px; color:var(--sub); font-weight:400;">(${g.items.length}건 · ${pct}%)</span>
+                  <span style="font-size:10.5px; color:var(--sub); font-weight:400;">(${g.items.length}건 · ${pct}%)</span>
                 </div>
-                <div style="color:var(--danger);">-${g.total.toLocaleString()}원</div>
+                <div style="color:var(--danger); white-space:nowrap;">-${g.total.toLocaleString()}원</div>
               </div>
               <div class="stat-bar-bg">
                 <div class="stat-bar-fill exp" style="width:${Math.max(pct, 2)}%;"></div>
@@ -1389,12 +1652,12 @@
 
         const container = document.getElementById('propCarListContainer');
         if (propCarExpItems.length === 0) {
-          container.innerHTML = '<div class="empty">해당 기간에 등록된 부동산•차 지출이 없습니다.</div>';
+          container.innerHTML = '<div class="empty">등록된 부동산•차 지출이 없습니다.</div>';
           return;
         }
         const sorted = propCarExpItems.slice().sort((a, b) => b.date.localeCompare(a.date));
         container.innerHTML = `<div class="stat-list">${sorted.map(item => {
-          const subLabel = isCarItem(item) ? '차 지출' : '부동산 지출';
+          const subLabel = isCarItem(item) ? '차' : '부동산';
           return `<div class="stat-row item" data-id="${escapeHtml(item.id)}">
             <div>
               <div class="item-main">[${subLabel}] ${escapeHtml(item.merchant || item.category)}</div>
@@ -1424,7 +1687,7 @@
 
         const container = document.getElementById('cashListContainer');
         if (cashExpItems.length === 0) {
-          container.innerHTML = '<div class="empty">해당 기간에 등록된 현금통장 지출이 없습니다.</div>';
+          container.innerHTML = '<div class="empty">등록된 현금통장 지출이 없습니다.</div>';
           return;
         }
         const sorted = cashExpItems.slice().sort((a, b) => b.date.localeCompare(a.date));
@@ -1704,6 +1967,31 @@
     setupBackdropDismiss('settingsModal', closeSettingsModal);
 
     /* ===== 이벤트 바인딩 ===== */
+    document.getElementById('calChipBudget').onclick = () => {
+      if (promptLivingBudget()) {
+        renderCalendarBudgetStrip();
+        if (document.getElementById('settleModal').classList.contains('open')) {
+          renderSettlement();
+        }
+      }
+    };
+    document.getElementById('calChipSpent').onclick = () => {
+      selectedSettleKey = null;
+      switchStatTab('living');
+      openModal('settleModal');
+    };
+    document.getElementById('calChipRemain').onclick = () => {
+      selectedSettleKey = null;
+      switchStatTab('living');
+      openModal('settleModal');
+    };
+    document.getElementById('quickBudgetEditBtn').onclick = () => {
+      if (promptLivingBudget()) {
+        renderCalendarBudgetStrip();
+        renderSettlement();
+      }
+    };
+
     document.querySelectorAll('#addTypeToggle .type-btn').forEach(btn=>{
       btn.onclick=()=>setAddType(btn.getAttribute('data-type'));
     });
@@ -1742,6 +2030,7 @@
         return;
       }
       saveLivingBudget(val);
+      renderCalendarBudgetStrip();
       setStatus(`생활비 예산 ${val.toLocaleString()}원 적용됨`, false, 2000);
       if (document.getElementById('settleModal').classList.contains('open')) {
         renderSettlement();
@@ -1796,6 +2085,7 @@
       paymentGroups = nextGroups;
       closeSettingsModal();
       renderSelectOptions();
+      renderCalendarBudgetStrip();
       saveLocalCache();
       if (document.getElementById('settleModal').classList.contains('open')) {
         renderSettlement();
@@ -1819,6 +2109,7 @@
         incomeCategories = prevIncomeCategories;
         paymentGroups = prevPaymentGroups;
         renderSelectOptions();
+        renderCalendarBudgetStrip();
         saveLocalCache();
         setStatus('설정 동기화 실패 (이전 설정으로 복구됨): ' + err.message, true, 4000);
       }).finally(() => {
