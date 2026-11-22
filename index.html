@@ -118,6 +118,7 @@
       height:auto;
       max-height:calc(100dvh - 16px);
       overflow-y:auto;
+      overscroll-behavior-y:contain;
       -webkit-overflow-scrolling:touch;
       background:#fff;
       border-radius:20px 20px 0 0;
@@ -164,6 +165,7 @@
     .settle-tab.active { background:var(--text); color:#fff; border-color:var(--text); }
 
     .stat-list { border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:12px; }
+    .stat-group + .stat-group { border-top:1px solid #f0f0f3; }
     .stat-row { padding:10px 12px; border-top:1px solid #f0f0f3; cursor:pointer; background:#fff; transition:background 0.15s; }
     .stat-row:first-child { border-top:none; }
     .stat-row.active { background:var(--accent-soft); }
@@ -362,7 +364,6 @@
         </div>
 
         <div id="settleStatContainer"></div>
-        <div id="settleDetailContainer" style="display:none;"></div>
       </div>
 
       <!-- 2. 부동산•차 탭 -->
@@ -1160,50 +1161,28 @@
 
         const groups = Array.from(map.values()).sort((a, b) => b.total - a.total);
         const statContainer = document.getElementById('settleStatContainer');
-        const detailContainer = document.getElementById('settleDetailContainer');
 
         if (groups.length === 0) {
           statContainer.innerHTML = '<div class="empty">해당 기간에 등록된 생활비 지출이 없습니다.</div>';
-          detailContainer.style.display = 'none';
           selectedSettleKey = null;
           return;
+        }
+
+        if (selectedSettleKey && !map.has(selectedSettleKey)) {
+          selectedSettleKey = null;
         }
 
         statContainer.innerHTML = `<div class="stat-list">${groups.map(g => {
           const pct = livingSpent > 0 ? Math.round((g.total / livingSpent) * 100) : 0;
           const isSelected = selectedSettleKey === g.key;
-          return `<div class="stat-row ${isSelected ? 'active' : ''}" data-key="${escapeHtml(g.key)}">
-            <div class="stat-row-top">
-              <div class="stat-row-left">
-                <span class="badge-type exp">생활비</span>
-                <span>${escapeHtml(g.key)}</span>
-                <span style="font-size:11px; color:var(--sub); font-weight:400;">(${g.items.length}건 · ${pct}%)</span>
-              </div>
-              <div style="color:var(--danger);">-${g.total.toLocaleString()}원</div>
-            </div>
-            <div class="stat-bar-bg">
-              <div class="stat-bar-fill exp" style="width:${Math.max(pct, 2)}%;"></div>
-            </div>
-          </div>`;
-        }).join('')}</div>`;
-
-        statContainer.querySelectorAll('.stat-row').forEach(row => {
-          row.onclick = () => {
-            const clickedKey = row.getAttribute('data-key');
-            selectedSettleKey = (selectedSettleKey === clickedKey) ? null : clickedKey;
-            renderSettlement();
-          };
-        });
-
-        if (selectedSettleKey && map.has(selectedSettleKey)) {
-          const targetGroup = map.get(selectedSettleKey);
-          const sortedItems = targetGroup.items.slice().sort((a, b) => b.date.localeCompare(a.date));
-          detailContainer.style.display = 'block';
-          detailContainer.innerHTML = `
+          const sortedItems = isSelected
+            ? g.items.slice().sort((a, b) => b.date.localeCompare(a.date))
+            : [];
+          const detailMarkup = isSelected ? `
             <div class="detail-box">
               <div class="detail-box-header">
-                <div class="detail-box-title">생활비 · ${escapeHtml(targetGroup.key)} (${sortedItems.length}건)</div>
-                <button type="button" class="detail-close" id="closeSettleDetailBtn">접기 ✕</button>
+                <div class="detail-box-title">생활비 · ${escapeHtml(g.key)} (${sortedItems.length}건)</div>
+                <button type="button" class="detail-close">접기 ✕</button>
               </div>
               <div>
                 ${sortedItems.map(item => `
@@ -1217,21 +1196,45 @@
                 `).join('')}
               </div>
             </div>
-          `;
-          document.getElementById('closeSettleDetailBtn').onclick = () => {
+          ` : '';
+          return `<div class="stat-group">
+            <div class="stat-row ${isSelected ? 'active' : ''}" data-key="${escapeHtml(g.key)}">
+              <div class="stat-row-top">
+                <div class="stat-row-left">
+                  <span class="badge-type exp">생활비</span>
+                  <span>${escapeHtml(g.key)}</span>
+                  <span style="font-size:11px; color:var(--sub); font-weight:400;">(${g.items.length}건 · ${pct}%)</span>
+                </div>
+                <div style="color:var(--danger);">-${g.total.toLocaleString()}원</div>
+              </div>
+              <div class="stat-bar-bg">
+                <div class="stat-bar-fill exp" style="width:${Math.max(pct, 2)}%;"></div>
+              </div>
+            </div>
+            ${detailMarkup}
+          </div>`;
+        }).join('')}</div>`;
+
+        statContainer.querySelectorAll('.stat-row').forEach(row => {
+          row.onclick = () => {
+            const clickedKey = row.getAttribute('data-key');
+            selectedSettleKey = (selectedSettleKey === clickedKey) ? null : clickedKey;
+            renderSettlement();
+          };
+        });
+
+        statContainer.querySelectorAll('.detail-close').forEach(button => {
+          button.onclick = () => {
             selectedSettleKey = null;
             renderSettlement();
           };
-          detailContainer.querySelectorAll('.item').forEach(el => {
-            el.onclick = () => {
-              closeSettleModal();
-              openEditModal(el.getAttribute('data-id'));
-            };
-          });
-        } else {
-          selectedSettleKey = null;
-          detailContainer.style.display = 'none';
-        }
+        });
+        statContainer.querySelectorAll('.detail-box .item').forEach(el => {
+          el.onclick = () => {
+            closeSettleModal();
+            openEditModal(el.getAttribute('data-id'));
+          };
+        });
       } else if (statMainTab === 'property_car') {
         document.getElementById('settleTitle').textContent = `${viewYear}년 ${viewMonth+1}월 부동산•차`;
         const propCarExpItems = monthItems.filter(e => normalizeGroup(e.author) === '부동산•차' && getEntryType(e) === 'expense');
@@ -1389,6 +1392,37 @@
           else goNextMonth();
         }
       }, { passive: true });
+    })();
+
+    (function preventModalTopOverscroll() {
+      document.querySelectorAll('.modal-sheet').forEach(sheet => {
+        let lastTouchY = 0;
+        let tracking = false;
+
+        sheet.addEventListener('touchstart', (e) => {
+          if (e.touches.length !== 1) {
+            tracking = false;
+            return;
+          }
+          lastTouchY = e.touches[0].clientY;
+          tracking = true;
+        }, { passive: true });
+
+        sheet.addEventListener('touchmove', (e) => {
+          if (!tracking || e.touches.length !== 1) return;
+          const currentY = e.touches[0].clientY;
+          if (sheet.scrollTop <= 0 && currentY > lastTouchY) {
+            e.preventDefault();
+          }
+          lastTouchY = currentY;
+        }, { passive: false });
+
+        const stopTracking = () => {
+          tracking = false;
+        };
+        sheet.addEventListener('touchend', stopTracking, { passive: true });
+        sheet.addEventListener('touchcancel', stopTracking, { passive: true });
+      });
     })();
 
     (function setupPullToRefresh() {
