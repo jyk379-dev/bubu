@@ -106,15 +106,14 @@
     .fab-add { position:fixed; right:20px; bottom:24px; width:56px; height:56px; border:none; border-radius:999px; background:var(--accent); color:#fff; box-shadow:0 6px 18px rgba(37,99,235,0.35); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:40; }
     .fab-add:active { transform:scale(0.95); }
 
-    /* 모든 모달: 바깥 터치 닫기 지원 + 전체 화면 절반(50dvh) 고정 + 내부 스크롤 */
+    /* 모든 모달: 바깥 터치 닫기 지원 + 전체 화면 2/3(66.6667dvh) 고정 + 내부 스크롤 */
     .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:flex-end; justify-content:center; z-index:50; }
     .modal-backdrop.open { display:flex; }
     .modal-sheet {
       width:100%;
       max-width:520px;
-      height:50dvh;
-      min-height:300px;
-      max-height:50dvh;
+      height:66.6667dvh;
+      max-height:66.6667dvh;
       overflow-y:auto;
       -webkit-overflow-scrolling:touch;
       background:#fff;
