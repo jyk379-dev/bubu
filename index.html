@@ -45,7 +45,7 @@
       box-shadow:0 1px 2px rgba(0,0,0,0.03);
     }
 
-    /* 상단 달력 카드: 외곽 테두리는 완전히 고정, 내부만 이동 */
+    /* 상단 달력 카드: 외곽 및 내부 상하 위치 고정 */
     .cal-card {
       flex-shrink:0;
       margin-bottom:12px;
@@ -54,14 +54,10 @@
       overflow:hidden;
     }
     .cal-inner {
-      will-change:transform;
-      transition:transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .cal-inner.dragging {
-      transition:none;
+      position:relative;
     }
 
-    /* 카드 내부 상단 새로고침 인디케이터 */
+    /* 카드 상단 새로고침 인디케이터 */
     .ptr-indicator {
       position:absolute;
       top:8px;
@@ -78,9 +74,10 @@
       font-size:11.5px;
       font-weight:700;
       color:var(--sub);
-      z-index:5;
+      z-index:15;
       opacity:0;
       pointer-events:none;
+      box-shadow:0 2px 8px rgba(0,0,0,0.08);
       transition:transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease, color 0.15s ease, border-color 0.15s ease;
     }
     .ptr-indicator.ready {
@@ -318,7 +315,7 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- 상단 고정 영역: 테두리(.cal-card)는 고정되고 내부(.cal-inner)만 아래로 당겨짐 -->
+    <!-- 상단 고정 영역: 달력 상하 위치 고정 및 인디케이터만 동작 -->
     <div class="card cal-card" id="calCard">
       <div class="ptr-indicator" id="ptrIndicator" aria-hidden="true">
         <span class="ptr-spinner" id="ptrSpinner"></span>
@@ -1556,7 +1553,7 @@
       closeModal('settingsModal');
     }
 
-    /* ===== 상단 달력 영역: 테두리 고정 + 내부 적정 거리 당김 새로고침 + iOS 연속 좌우 스와이프 ===== */
+    /* ===== 상단 달력 영역: 상하 위치 고정 + 기존 인디케이터 새로고침 + 좌우 스와이프 ===== */
     (function setupCalendarGestures() {
       const calCard = document.getElementById('calCard');
       const calInner = document.getElementById('calInner');
@@ -1575,10 +1572,11 @@
       let isRefreshing = false;
       let safetyResetTimer = null;
 
+      calInner.style.transform = '';
+
       function setPullVisual(pullPx) {
         const clamped = Math.max(0, Math.min(maxPullPx, pullPx));
         currentPullPx = clamped;
-        calInner.style.transform = clamped > 0 ? `translate3d(0, ${clamped}px, 0)` : '';
 
         if (clamped <= 2) {
           ptrEl.style.opacity = '0';
@@ -1622,13 +1620,11 @@
         calInner.classList.remove('dragging');
         if (pulled >= refreshThreshold && !isRefreshing) {
           isRefreshing = true;
-          calInner.style.transform = 'translate3d(0, 44px, 0)';
           ptrEl.style.opacity = '1';
           ptrEl.style.transform = 'translate3d(-50%, 6px, 0)';
           ptrEl.classList.add('ready', 'spinning');
           ptrText.textContent = '새로고침 중...';
 
-          // 어떤 상황에서도 3초 안에 반드시 원위치 복귀 보장
           safetyResetTimer = setTimeout(resetAllVisuals, 3000);
 
           refreshDataFromServer().finally(() => {
@@ -1658,7 +1654,6 @@
             trackEl.classList.add('dragging');
           } else if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx)) {
             gestureMode = 'pull';
-            calInner.classList.add('dragging');
           }
         }
 
@@ -1673,7 +1668,6 @@
           if (dy <= 0) {
             setPullVisual(0);
           } else {
-            // 적당한 거리(maxPullPx)까지만 부드럽게 감쇠 이동
             const damped = maxPullPx * (1 - Math.exp(-dy / 130));
             setPullVisual(damped);
           }
@@ -1714,7 +1708,6 @@
         }
       }
 
-      // window 레벨에서 수신해 손가락이 상단 바/영역 밖으로 벗어나도 놓침 없이 복귀 처리
       window.addEventListener('touchend', (e) => handleTouchEndOrCancel(e, false), { passive: true });
       window.addEventListener('touchcancel', (e) => handleTouchEndOrCancel(e, true), { passive: true });
     })();
