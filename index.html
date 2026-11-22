@@ -17,10 +17,55 @@
       --income:#16a34a; --income-soft:#f0fdf4;
     }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif; background:var(--bg); color:var(--text); padding-bottom:96px; }
-    body.modal-open { overflow:hidden; }
-    .wrap { max-width:520px; margin:0 auto; padding:12px; }
-    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,0.03); }
+    html, body {
+      margin:0;
+      height:100%;
+      overflow:hidden;
+      overscroll-behavior:none;
+      font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap {
+      max-width:520px;
+      height:100dvh;
+      margin:0 auto;
+      padding:12px 12px 0;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .card {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      box-shadow:0 1px 2px rgba(0,0,0,0.03);
+    }
+    /* 상단 달력 카드: 크기 고정, 스크롤 불가 */
+    .cal-card {
+      flex-shrink:0;
+      margin-bottom:12px;
+      touch-action:none;
+    }
+    /* 하단 내역 카드: 남은 영역 채우고 내부 리스트만 스크롤 */
+    .list-card {
+      flex:1 1 auto;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      border-radius:16px 16px 0 0;
+      border-bottom:none;
+      padding-bottom:0;
+    }
+    .list-scroll-area {
+      flex:1 1 auto;
+      min-height:0;
+      overflow-y:auto;
+      overscroll-behavior-y:contain;
+      -webkit-overflow-scrolling:touch;
+      padding-bottom:96px;
+    }
 
     .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; }
     .cal-title-wrap { display:flex; align-items:center; gap:6px; }
@@ -60,10 +105,10 @@
     .icon-badge.show { display:inline-block; }
 
     /* 좌우 슬라이딩 영역 */
-    .cal-swipe-area { touch-action:pan-y; user-select:none; }
+    .cal-swipe-area { user-select:none; }
     .weekdays,.days { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center; }
     .weekdays div { font-size:12px; color:var(--sub); padding:4px 0; font-weight:600; }
-    .day-btn { border:1px solid transparent; background:transparent; border-radius:10px; min-height:58px; padding:4px 2px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; cursor:pointer; color:var(--text); }
+    .day-btn { border:1px solid transparent; background:transparent; border-radius:10px; min-height:54px; padding:4px 2px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; cursor:pointer; color:var(--text); }
     .day-btn.muted { color:#d4d4d8; cursor:default; }
     .day-btn.today .day-num { background:#18181b; color:#fff; width:22px; height:22px; line-height:22px; border-radius:999px; }
     .day-btn.selected { background:var(--accent-soft); border-color:var(--accent); font-weight:700; }
@@ -71,7 +116,7 @@
     .day-inc { font-size:9.5px; color:var(--income); margin-top:2px; white-space:nowrap; overflow:hidden; max-width:100%; font-weight:600; }
     .day-sum { font-size:9.5px; color:var(--danger); margin-top:1px; white-space:nowrap; overflow:hidden; max-width:100%; }
 
-    .list-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; gap:8px; }
+    .list-top { flex-shrink:0; display:flex; justify-content:space-between; align-items:baseline; padding-bottom:8px; border-bottom:1px solid #f4f4f5; gap:8px; }
     .list-title { font-size:15px; font-weight:700; }
     .list-totals { display:flex; gap:8px; align-items:baseline; font-size:13px; font-weight:700; }
     .tot-inc { color:var(--income); }
@@ -85,7 +130,7 @@
     .item-amt { font-size:14px; font-weight:700; white-space:nowrap; margin-left:8px; }
     .item-amt.exp { color:var(--danger); }
     .item-amt.inc { color:var(--income); }
-    .empty { text-align:center; color:var(--sub); padding:22px 0; font-size:13px; }
+    .empty { text-align:center; color:var(--sub); padding:28px 0; font-size:13px; }
 
     /* 수입/지출 토글 탭 */
     .type-toggle { display:grid; grid-template-columns:1fr 1fr; gap:6px; background:#f4f4f5; padding:4px; border-radius:12px; margin-bottom:10px; }
@@ -197,7 +242,8 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
+    <!-- 상단 고정 영역: 달력 -->
+    <div class="card cal-card" id="calCard">
       <div class="cal-header">
         <div class="cal-title-wrap">
           <div class="cal-title" id="monthLabel"></div>
@@ -227,7 +273,8 @@
       </div>
     </div>
 
-    <div class="card">
+    <!-- 하단 독립 스크롤 영역: 내역 -->
+    <div class="card list-card" id="listCard">
       <div class="list-top">
         <div class="list-title" id="selectedDateLabel"></div>
         <div class="list-totals">
@@ -235,8 +282,10 @@
           <span class="tot-exp" id="selectedDateTotal">0원</span>
         </div>
       </div>
-      <div id="expenseList"></div>
-      <div class="status" id="statusMsg"></div>
+      <div class="list-scroll-area" id="listScrollArea">
+        <div id="expenseList"></div>
+        <div class="status" id="statusMsg"></div>
+      </div>
     </div>
   </div>
 
@@ -888,6 +937,8 @@
         btn.innerHTML=`<span class="day-num">${d}</span>${incText?`<span class="day-inc">${incText}</span>`:''}${expText?`<span class="day-sum">${expText}</span>`:''}`;
         btn.onclick=()=>{
           selectedDate=ymd;
+          const scrollArea = document.getElementById('listScrollArea');
+          if (scrollArea) scrollArea.scrollTop = 0;
           renderCalendar();
           renderList();
           updateFormDate();
@@ -975,16 +1026,8 @@
       fillSubSelect(document.getElementById('paymentSub'), payGrpEl.value, '');
     }
 
-    let modalScrollPosition = 0;
     function openModal(modalId) {
       const modal = document.getElementById(modalId);
-      if (!document.body.classList.contains('modal-open')) {
-        modalScrollPosition = window.scrollY || document.documentElement.scrollTop;
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${modalScrollPosition}px`;
-        document.body.style.width = '100%';
-        document.body.classList.add('modal-open');
-      }
       modal.classList.add('open');
       const sheet = modal.querySelector('.modal-sheet');
       if (sheet) sheet.scrollTop = 0;
@@ -992,13 +1035,6 @@
 
     function closeModal(modalId) {
       document.getElementById(modalId).classList.remove('open');
-      if (document.querySelector('.modal-backdrop.open')) return;
-
-      document.body.classList.remove('modal-open');
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, modalScrollPosition);
     }
 
     function openAddModal() {
@@ -1367,31 +1403,92 @@
       closeModal('settingsModal');
     }
 
-    /* ===== 달력 좌우 슬라이딩(터치 스와이프) ===== */
-    (function setupCalendarSwipe() {
+    /* ===== 상단 달력 영역: 좌우 월 이동 + 아래로 당겨서 새로고침만 허용 (반대 방향 고정) ===== */
+    (function setupCalendarGestures() {
+      const calCard = document.getElementById('calCard');
       const swipeEl = document.getElementById('calSwipeArea');
+      const refreshThreshold = 90;
       let startX = 0, startY = 0, tracking = false;
+      let isInSwipeGrid = false;
 
-      swipeEl.addEventListener('touchstart', (e) => {
+      calCard.addEventListener('touchstart', (e) => {
         if (!e.touches || e.touches.length !== 1) return;
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
+        isInSwipeGrid = Boolean(e.target.closest('#calSwipeArea'));
         tracking = true;
       }, { passive: true });
 
-      swipeEl.addEventListener('touchend', (e) => {
+      calCard.addEventListener('touchmove', (e) => {
+        if (!tracking || !e.touches || e.touches.length !== 1) return;
+        const dy = e.touches[0].clientY - startY;
+        // 위로 올리는(역방향) 스크롤은 완전히 차단하여 상단 달력 위치 고정
+        if (dy < 0) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      calCard.addEventListener('touchend', (e) => {
         if (!tracking || !e.changedTouches || e.changedTouches.length !== 1) return;
         tracking = false;
-        const endX = e.changedTouches[0].clientX;
-        const endY = e.changedTouches[0].clientY;
-        const dx = endX - startX;
-        const dy = endY - startY;
+        const dx = e.changedTouches[0].clientX - startX;
+        const dy = e.changedTouches[0].clientY - startY;
 
-        if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+        // 1. 달력 그리드 내 좌우 스와이프 -> 월 이동
+        if (isInSwipeGrid && Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.3) {
           if (dx > 0) goPrevMonth();
           else goNextMonth();
+          return;
+        }
+
+        // 2. 달력 영역에서 아래로 당기기 -> 새로고침
+        if (dy >= refreshThreshold && dy > Math.abs(dx) * 1.2) {
+          window.location.reload();
         }
       }, { passive: true });
+
+      calCard.addEventListener('touchcancel', () => {
+        tracking = false;
+      }, { passive: true });
+    })();
+
+    /* ===== 하단 내역 영역: 독립 스크롤 및 최상단 바운스/새로고침 방지 ===== */
+    (function setupListFixedScroll() {
+      const listCard = document.getElementById('listCard');
+      const scrollArea = document.getElementById('listScrollArea');
+      let lastTouchY = 0;
+      let tracking = false;
+
+      listCard.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) {
+          tracking = false;
+          return;
+        }
+        lastTouchY = e.touches[0].clientY;
+        tracking = true;
+      }, { passive: true });
+
+      listCard.addEventListener('touchmove', (e) => {
+        if (!tracking || e.touches.length !== 1) return;
+        const currentY = e.touches[0].clientY;
+        const isInScrollArea = Boolean(e.target.closest('#listScrollArea'));
+
+        // 헤더 영역 터치 이동 차단
+        if (!isInScrollArea) {
+          e.preventDefault();
+          return;
+        }
+
+        // 내역 리스트 최상단에서 아래로 당길 때 고정 (화면 당김/새로고침 방지)
+        if (scrollArea.scrollTop <= 0 && currentY > lastTouchY) {
+          e.preventDefault();
+        }
+        lastTouchY = currentY;
+      }, { passive: false });
+
+      const stopTracking = () => { tracking = false; };
+      listCard.addEventListener('touchend', stopTracking, { passive: true });
+      listCard.addEventListener('touchcancel', stopTracking, { passive: true });
     })();
 
     (function preventModalTopOverscroll() {
@@ -1423,41 +1520,6 @@
         sheet.addEventListener('touchend', stopTracking, { passive: true });
         sheet.addEventListener('touchcancel', stopTracking, { passive: true });
       });
-    })();
-
-    (function setupPullToRefresh() {
-      const threshold = 100;
-      let startX = 0;
-      let startY = 0;
-      let tracking = false;
-
-      document.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1 || window.scrollY > 0 || document.querySelector('.modal-backdrop.open')) {
-          tracking = false;
-          return;
-        }
-        if (e.target.closest('button, input, select, textarea, a, [contenteditable="true"]')) {
-          tracking = false;
-          return;
-        }
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        tracking = true;
-      }, { passive: true });
-
-      document.addEventListener('touchend', (e) => {
-        if (!tracking || e.changedTouches.length !== 1) return;
-        tracking = false;
-        const dx = e.changedTouches[0].clientX - startX;
-        const dy = e.changedTouches[0].clientY - startY;
-        if (dy >= threshold && dy > Math.abs(dx) * 1.2 && window.scrollY <= 0) {
-          window.location.reload();
-        }
-      }, { passive: true });
-
-      document.addEventListener('touchcancel', () => {
-        tracking = false;
-      }, { passive: true });
     })();
 
     /* ===== 모든 모달 화면 밖(백드롭) 터치 시 닫기 ===== */
