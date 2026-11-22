@@ -37,48 +37,6 @@
       position:relative;
     }
 
-    /* 아래로 당겨 새로고침 인디케이터 */
-    .ptr-indicator {
-      position:absolute;
-      top:4px;
-      left:50%;
-      transform:translate3d(-50%, -44px, 0);
-      height:34px;
-      padding:0 14px;
-      border-radius:999px;
-      background:#fff;
-      border:1px solid var(--line);
-      box-shadow:0 4px 12px rgba(0,0,0,0.08);
-      display:inline-flex;
-      align-items:center;
-      gap:7px;
-      font-size:12px;
-      font-weight:700;
-      color:var(--sub);
-      z-index:20;
-      opacity:0;
-      pointer-events:none;
-      transition:transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease, color 0.15s ease;
-    }
-    .ptr-indicator.ready {
-      color:var(--accent);
-      border-color:#bfdbfe;
-    }
-    .ptr-spinner {
-      width:14px;
-      height:14px;
-      border:2px solid #d4d4d8;
-      border-top-color:var(--accent);
-      border-radius:999px;
-      transition:transform 0.15s ease;
-    }
-    .ptr-indicator.spinning .ptr-spinner {
-      animation:spinPtr 0.7s linear infinite;
-    }
-    @keyframes spinPtr {
-      to { transform:rotate(360deg); }
-    }
-
     .card {
       background:var(--card);
       border:1px solid var(--line);
@@ -86,17 +44,63 @@
       padding:14px;
       box-shadow:0 1px 2px rgba(0,0,0,0.03);
     }
-    /* 상단 달력 카드: 크기 고정, 아래로 당김 움직임만 허용 */
+
+    /* 상단 달력 카드: 외곽 테두리는 완전히 고정, 내부만 이동 */
     .cal-card {
       flex-shrink:0;
       margin-bottom:12px;
       position:relative;
       z-index:10;
-      will-change:transform;
-      transition:transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+      overflow:hidden;
     }
-    .cal-card.dragging {
+    .cal-inner {
+      will-change:transform;
+      transition:transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .cal-inner.dragging {
       transition:none;
+    }
+
+    /* 카드 내부 상단 새로고침 인디케이터 */
+    .ptr-indicator {
+      position:absolute;
+      top:8px;
+      left:50%;
+      transform:translate3d(-50%, -38px, 0);
+      height:30px;
+      padding:0 12px;
+      border-radius:999px;
+      background:#f8fafc;
+      border:1px solid var(--line);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:11.5px;
+      font-weight:700;
+      color:var(--sub);
+      z-index:5;
+      opacity:0;
+      pointer-events:none;
+      transition:transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+    .ptr-indicator.ready {
+      color:var(--accent);
+      background:var(--accent-soft);
+      border-color:#bfdbfe;
+    }
+    .ptr-spinner {
+      width:13px;
+      height:13px;
+      border:2px solid #cbd5e1;
+      border-top-color:var(--accent);
+      border-radius:999px;
+      transition:transform 0.12s ease;
+    }
+    .ptr-indicator.spinning .ptr-spinner {
+      animation:spinPtr 0.65s linear infinite;
+    }
+    @keyframes spinPtr {
+      to { transform:rotate(360deg); }
     }
 
     /* 하단 내역 카드: 남은 영역 채우고 내부 리스트만 스크롤 */
@@ -314,43 +318,44 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- 새로고침 당김 인디케이터 -->
-    <div class="ptr-indicator" id="ptrIndicator" aria-hidden="true">
-      <span class="ptr-spinner" id="ptrSpinner"></span>
-      <span id="ptrText">당겨서 새로고침</span>
-    </div>
-
-    <!-- 상단 고정 영역: 달력 (아래로 당김 움직임 + 좌우 연속 슬라이드) -->
+    <!-- 상단 고정 영역: 테두리(.cal-card)는 고정되고 내부(.cal-inner)만 아래로 당겨짐 -->
     <div class="card cal-card" id="calCard">
-      <div class="cal-header">
-        <div class="cal-title-wrap">
-          <div class="cal-title" id="monthLabel"></div>
-          <span class="sync-dot" id="syncDot" title="동기화 중"></span>
-        </div>
-        <div class="nav-group">
-          <!-- 1. 생활비 통계 -->
-          <button type="button" class="icon-btn" id="openSettleBtn" aria-label="생활비 통계" title="생활비 통계">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-          </button>
-          <!-- 2. 알림 -->
-          <button type="button" class="icon-btn" id="openNotiBtn" aria-label="알림">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-            <span class="icon-badge" id="notiBadge"></span>
-          </button>
-          <!-- 3. 설정 -->
-          <button type="button" class="icon-btn" id="openSettingsBtn" aria-label="설정">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          </button>
-        </div>
+      <div class="ptr-indicator" id="ptrIndicator" aria-hidden="true">
+        <span class="ptr-spinner" id="ptrSpinner"></span>
+        <span id="ptrText">당겨서 새로고침</span>
       </div>
 
-      <!-- 좌우 연속 슬라이딩 달력 트랙 (이전달 | 현재달 | 다음달) -->
-      <div class="cal-swipe-area" id="calSwipeArea">
-        <div class="weekdays"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
-        <div class="cal-track" id="calTrack">
-          <div class="cal-month-page"><div class="days" id="calendarDaysPrev"></div></div>
-          <div class="cal-month-page"><div class="days" id="calendarDays"></div></div>
-          <div class="cal-month-page"><div class="days" id="calendarDaysNext"></div></div>
+      <div class="cal-inner" id="calInner">
+        <div class="cal-header">
+          <div class="cal-title-wrap">
+            <div class="cal-title" id="monthLabel"></div>
+            <span class="sync-dot" id="syncDot" title="동기화 중"></span>
+          </div>
+          <div class="nav-group">
+            <!-- 1. 생활비 통계 -->
+            <button type="button" class="icon-btn" id="openSettleBtn" aria-label="생활비 통계" title="생활비 통계">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </button>
+            <!-- 2. 알림 -->
+            <button type="button" class="icon-btn" id="openNotiBtn" aria-label="알림">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              <span class="icon-badge" id="notiBadge"></span>
+            </button>
+            <!-- 3. 설정 -->
+            <button type="button" class="icon-btn" id="openSettingsBtn" aria-label="설정">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 좌우 연속 슬라이딩 달력 트랙 (이전달 | 현재달 | 다음달) -->
+        <div class="cal-swipe-area" id="calSwipeArea">
+          <div class="weekdays"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+          <div class="cal-track" id="calTrack">
+            <div class="cal-month-page"><div class="days" id="calendarDaysPrev"></div></div>
+            <div class="cal-month-page"><div class="days" id="calendarDays"></div></div>
+            <div class="cal-month-page"><div class="days" id="calendarDaysNext"></div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -970,6 +975,40 @@
       throw lastErr;
     }
 
+    function refreshDataFromServer() {
+      const token = startSyncToken('refresh');
+      return apiGetInit().then(data => {
+        const rows = Array.isArray(data.expenses) ? data.expenses : [];
+        if (data.settings) {
+          if (Array.isArray(data.settings.categories) && data.settings.categories.length > 0) categories = data.settings.categories;
+          if (Array.isArray(data.settings.incomeCategories) && data.settings.incomeCategories.length > 0) incomeCategories = data.settings.incomeCategories;
+          if (data.settings.paymentGroups) {
+            paymentGroups = {
+              '카드': Array.isArray(data.settings.paymentGroups['카드']) && data.settings.paymentGroups['카드'].length > 0 ? data.settings.paymentGroups['카드'] : ['우리카드'],
+              '현금': Array.isArray(data.settings.paymentGroups['현금']) && data.settings.paymentGroups['현금'].length > 0 ? data.settings.paymentGroups['현금'] : ['농협체크']
+            };
+          }
+          renderSelectOptions();
+        }
+
+        const pendingTemps = expenses.filter(e => String(e.id).startsWith('temp_'));
+        const serverExpenses = rows.map(row => ({ ...row, author: normalizeGroup(row.author) }));
+        expenses = [...serverExpenses, ...pendingTemps];
+
+        if (seenIdSet === null) {
+          markAllCurrentAsRead();
+        }
+
+        saveLocalCache();
+        setStatus('');
+        refreshAllOpenViews();
+      }).catch(err => {
+        setStatus('동기화 실패: ' + err.message, true, 3000);
+      }).finally(() => {
+        finishSyncToken(token);
+      });
+    }
+
     function shiftMonthDate(year, monthIndex, deltaMonths) {
       const d = new Date(year, monthIndex + deltaMonths, 1);
       return { year: d.getFullYear(), monthIndex: d.getMonth() };
@@ -1517,9 +1556,10 @@
       closeModal('settingsModal');
     }
 
-    /* ===== 상단 달력 영역: 아래로 당김 새로고침 모션 + iOS 캘린더 연속 좌우 스와이프 ===== */
+    /* ===== 상단 달력 영역: 테두리 고정 + 내부 적정 거리 당김 새로고침 + iOS 연속 좌우 스와이프 ===== */
     (function setupCalendarGestures() {
       const calCard = document.getElementById('calCard');
+      const calInner = document.getElementById('calInner');
       const swipeEl = document.getElementById('calSwipeArea');
       const trackEl = document.getElementById('calTrack');
       const ptrEl = document.getElementById('ptrIndicator');
@@ -1527,24 +1567,28 @@
       const ptrSpinner = document.getElementById('ptrSpinner');
       const monthLabelEl = document.getElementById('monthLabel');
 
-      const refreshThreshold = 68;
+      const refreshThreshold = 46;
+      const maxPullPx = 62;
       let startX = 0, startY = 0;
+      let currentPullPx = 0;
       let gestureMode = null; // null | 'horizontal' | 'pull'
       let isRefreshing = false;
+      let safetyResetTimer = null;
 
       function setPullVisual(pullPx) {
-        const clamped = Math.max(0, pullPx);
-        calCard.style.transform = clamped > 0 ? `translate3d(0, ${clamped}px, 0)` : '';
+        const clamped = Math.max(0, Math.min(maxPullPx, pullPx));
+        currentPullPx = clamped;
+        calInner.style.transform = clamped > 0 ? `translate3d(0, ${clamped}px, 0)` : '';
 
         if (clamped <= 2) {
           ptrEl.style.opacity = '0';
-          ptrEl.style.transform = 'translate3d(-50%, -44px, 0)';
+          ptrEl.style.transform = 'translate3d(-50%, -38px, 0)';
           ptrEl.classList.remove('ready');
           return;
         }
 
         const progress = Math.min(1, clamped / refreshThreshold);
-        const indY = Math.min(clamped - 26, 26);
+        const indY = Math.min(clamped - 36, 12);
         ptrEl.style.opacity = String(Math.min(1, progress * 1.25));
         ptrEl.style.transform = `translate3d(-50%, ${indY}px, 0)`;
         ptrSpinner.style.transform = `rotate(${Math.round(progress * 260)}deg)`;
@@ -1558,13 +1602,40 @@
         }
       }
 
-      function resetPullVisual() {
-        calCard.classList.remove('dragging');
-        calCard.style.transform = '';
-        if (!isRefreshing) {
-          ptrEl.style.opacity = '0';
-          ptrEl.style.transform = 'translate3d(-50%, -44px, 0)';
-          ptrEl.classList.remove('ready', 'spinning');
+      function resetAllVisuals() {
+        if (safetyResetTimer) {
+          clearTimeout(safetyResetTimer);
+          safetyResetTimer = null;
+        }
+        isRefreshing = false;
+        gestureMode = null;
+        currentPullPx = 0;
+        calInner.classList.remove('dragging');
+        calInner.style.transform = '';
+        ptrEl.style.opacity = '0';
+        ptrEl.style.transform = 'translate3d(-50%, -38px, 0)';
+        ptrEl.classList.remove('ready', 'spinning');
+      }
+
+      function finishPullGesture() {
+        const pulled = currentPullPx;
+        calInner.classList.remove('dragging');
+        if (pulled >= refreshThreshold && !isRefreshing) {
+          isRefreshing = true;
+          calInner.style.transform = 'translate3d(0, 44px, 0)';
+          ptrEl.style.opacity = '1';
+          ptrEl.style.transform = 'translate3d(-50%, 6px, 0)';
+          ptrEl.classList.add('ready', 'spinning');
+          ptrText.textContent = '새로고침 중...';
+
+          // 어떤 상황에서도 3초 안에 반드시 원위치 복귀 보장
+          safetyResetTimer = setTimeout(resetAllVisuals, 3000);
+
+          refreshDataFromServer().finally(() => {
+            setTimeout(resetAllVisuals, 250);
+          });
+        } else {
+          resetAllVisuals();
         }
       }
 
@@ -1572,6 +1643,7 @@
         if (isRefreshing || !e.touches || e.touches.length !== 1) return;
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
+        currentPullPx = 0;
         gestureMode = null;
       }, { passive: true });
 
@@ -1586,7 +1658,7 @@
             trackEl.classList.add('dragging');
           } else if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx)) {
             gestureMode = 'pull';
-            calCard.classList.add('dragging');
+            calInner.classList.add('dragging');
           }
         }
 
@@ -1597,35 +1669,31 @@
           const basePercent = -33.333333;
           trackEl.style.transform = `translate3d(${basePercent + offsetRatio * 33.333333}%, 0, 0)`;
         } else if (gestureMode === 'pull') {
-          if (dy < 0) {
-            // 위로 올리려는 역방향 움직임은 고정
-            e.preventDefault();
+          e.preventDefault();
+          if (dy <= 0) {
             setPullVisual(0);
           } else {
-            e.preventDefault();
-            const damped = dy * 0.44;
+            // 적당한 거리(maxPullPx)까지만 부드럽게 감쇠 이동
+            const damped = maxPullPx * (1 - Math.exp(-dy / 130));
             setPullVisual(damped);
           }
         }
       }, { passive: false });
 
-      calCard.addEventListener('touchend', (e) => {
-        if (isRefreshing || !e.changedTouches || e.changedTouches.length !== 1) {
-          gestureMode = null;
-          return;
-        }
-        const dx = e.changedTouches[0].clientX - startX;
-        const dy = e.changedTouches[0].clientY - startY;
+      function handleTouchEndOrCancel(e, isCancel) {
+        if (!gestureMode) return;
         const mode = gestureMode;
         gestureMode = null;
 
         if (mode === 'horizontal') {
           trackEl.classList.remove('dragging');
+          const touch = e.changedTouches && e.changedTouches[0];
+          const dx = (!isCancel && touch) ? (touch.clientX - startX) : 0;
           const width = swipeEl.clientWidth || 1;
           const commitThreshold = Math.min(72, width * 0.24);
 
           if (Math.abs(dx) >= commitThreshold) {
-            const direction = dx > 0 ? -1 : 1; // dx > 0: 이전달(오른쪽으로 트랙 이동), dx < 0: 다음달(왼쪽으로 트랙 이동)
+            const direction = dx > 0 ? -1 : 1;
             const targetM = shiftMonthDate(viewYear, viewMonth, direction);
             monthLabelEl.textContent = `${targetM.year}년 ${targetM.monthIndex + 1}월`;
             trackEl.style.transform = dx > 0 ? 'translate3d(0%, 0, 0)' : 'translate3d(-66.666667%, 0, 0)';
@@ -1642,31 +1710,13 @@
         }
 
         if (mode === 'pull') {
-          const damped = dy * 0.44;
-          calCard.classList.remove('dragging');
-          if (dy > 0 && damped >= refreshThreshold) {
-            isRefreshing = true;
-            calCard.style.transform = 'translate3d(0, 44px, 0)';
-            ptrEl.style.opacity = '1';
-            ptrEl.style.transform = 'translate3d(-50%, 10px, 0)';
-            ptrEl.classList.add('ready', 'spinning');
-            ptrText.textContent = '새로고침 중...';
-            setTimeout(() => {
-              window.location.reload();
-            }, 220);
-          } else {
-            resetPullVisual();
-          }
+          finishPullGesture();
         }
-      }, { passive: true });
+      }
 
-      calCard.addEventListener('touchcancel', () => {
-        gestureMode = null;
-        trackEl.classList.remove('dragging');
-        trackEl.style.transform = 'translate3d(-33.333333%, 0, 0)';
-        monthLabelEl.textContent = `${viewYear}년 ${viewMonth + 1}월`;
-        resetPullVisual();
-      }, { passive: true });
+      // window 레벨에서 수신해 손가락이 상단 바/영역 밖으로 벗어나도 놓침 없이 복귀 처리
+      window.addEventListener('touchend', (e) => handleTouchEndOrCancel(e, false), { passive: true });
+      window.addEventListener('touchcancel', (e) => handleTouchEndOrCancel(e, true), { passive: true });
     })();
 
     /* ===== 하단 내역 영역: 독립 스크롤 및 최상단 바운스/새로고침 방지 ===== */
