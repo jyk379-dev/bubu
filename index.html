@@ -128,6 +128,9 @@
     /* 설정 모달 태그 */
     .setting-sec { margin-bottom:14px; }
     .setting-sec-title { font-size:13px; font-weight:700; color:var(--sub); margin-bottom:6px; }
+    .settings-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; background:#f4f4f5; padding:4px; border-radius:12px; margin:12px 0; }
+    .settings-tab { border:none; background:transparent; padding:9px 6px; border-radius:9px; font-size:13px; font-weight:700; color:var(--sub); cursor:pointer; }
+    .settings-tab.active { background:#fff; color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
     .tag-list { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
     .tag-pill { display:inline-flex; align-items:center; gap:6px; background:#f4f4f5; border:1px solid var(--line); border-radius:999px; padding:5px 10px; font-size:13px; font-weight:600; }
     .tag-del { border:none; background:transparent; color:var(--danger); font-size:14px; font-weight:700; cursor:pointer; padding:0 2px; }
@@ -399,33 +402,41 @@
   <!-- 설정 모달 -->
   <div class="modal-backdrop" id="settingsModal">
     <div class="modal-sheet">
-      <div class="modal-title">예산 · 카테고리 · 2단계 결제수단 설정</div>
-      <div class="setting-sec" style="margin-top:10px;">
-        <div class="setting-sec-title">생활비 예산 설정</div>
-        <div class="add-inline">
-          <input type="number" id="settingLivingBudgetInput" inputmode="numeric" placeholder="생활비 예산 (원)" min="0" step="1000" />
-          <button type="button" id="applyLivingBudgetBtn">예산 적용</button>
+      <div class="modal-title">설정</div>
+      <div class="settings-tabs" role="tablist" aria-label="설정 항목">
+        <button type="button" class="settings-tab active" id="settingsCategoriesTab" role="tab" aria-selected="true" aria-controls="settingsCategoriesPanel" data-settings-tab="categories">카테고리 · 예산</button>
+        <button type="button" class="settings-tab" id="settingsPaymentTab" role="tab" aria-selected="false" aria-controls="settingsPaymentPanel" data-settings-tab="payment">결제수단</button>
+      </div>
+      <div id="settingsCategoriesPanel" role="tabpanel" aria-labelledby="settingsCategoriesTab" data-settings-panel="categories">
+        <div class="setting-sec">
+          <div class="setting-sec-title">지출 카테고리</div>
+          <div class="tag-list" id="settingCategoryTags"></div>
+          <div class="add-inline"><input type="text" id="newCategoryInput" placeholder="새 지출 카테고리" /><button type="button" id="addCategoryTagBtn">추가</button></div>
+        </div>
+        <div class="setting-sec">
+          <div class="setting-sec-title">수입 카테고리</div>
+          <div class="tag-list" id="settingIncomeCategoryTags"></div>
+          <div class="add-inline"><input type="text" id="newIncomeCategoryInput" placeholder="새 수입 카테고리 (예: 급여, 용돈)" /><button type="button" id="addIncomeCategoryTagBtn">추가</button></div>
+        </div>
+        <div class="setting-sec">
+          <div class="setting-sec-title">생활비 예산 설정</div>
+          <div class="add-inline">
+            <input type="number" id="settingLivingBudgetInput" inputmode="numeric" placeholder="생활비 예산 (원)" min="0" step="1000" />
+            <button type="button" id="applyLivingBudgetBtn">예산 적용</button>
+          </div>
         </div>
       </div>
-      <div class="setting-sec">
-        <div class="setting-sec-title">지출 카테고리</div>
-        <div class="tag-list" id="settingCategoryTags"></div>
-        <div class="add-inline"><input type="text" id="newCategoryInput" placeholder="새 지출 카테고리" /><button type="button" id="addCategoryTagBtn">추가</button></div>
-      </div>
-      <div class="setting-sec">
-        <div class="setting-sec-title">수입 카테고리</div>
-        <div class="tag-list" id="settingIncomeCategoryTags"></div>
-        <div class="add-inline"><input type="text" id="newIncomeCategoryInput" placeholder="새 수입 카테고리 (예: 급여, 용돈)" /><button type="button" id="addIncomeCategoryTagBtn">추가</button></div>
-      </div>
-      <div class="setting-sec">
-        <div class="setting-sec-title">카드 세부 수단 (카드 &gt; ...)</div>
-        <div class="tag-list" id="settingCardTags"></div>
-        <div class="add-inline"><input type="text" id="newCardInput" placeholder="예: 우리카드, 현대카드" /><button type="button" id="addCardTagBtn">추가</button></div>
-      </div>
-      <div class="setting-sec">
-        <div class="setting-sec-title">현금 · 계좌 세부 수단 (현금 &gt; ...)</div>
-        <div class="tag-list" id="settingCashTags"></div>
-        <div class="add-inline"><input type="text" id="newCashInput" placeholder="예: 농협체크, 현금직접" /><button type="button" id="addCashTagBtn">추가</button></div>
+      <div id="settingsPaymentPanel" role="tabpanel" aria-labelledby="settingsPaymentTab" data-settings-panel="payment" hidden>
+        <div class="setting-sec">
+          <div class="setting-sec-title">카드 세부 수단</div>
+          <div class="tag-list" id="settingCardTags"></div>
+          <div class="add-inline"><input type="text" id="newCardInput" placeholder="예: 우리카드, 현대카드" /><button type="button" id="addCardTagBtn">추가</button></div>
+        </div>
+        <div class="setting-sec">
+          <div class="setting-sec-title">현금 세부 수단</div>
+          <div class="tag-list" id="settingCashTags"></div>
+          <div class="add-inline"><input type="text" id="newCashInput" placeholder="예: 농협체크, 현금직접" /><button type="button" id="addCashTagBtn">추가</button></div>
+        </div>
       </div>
       <button type="button" class="btn btn-primary" id="saveSettingsBtn">설정 저장</button>
       <button type="button" class="btn btn-ghost" style="margin-top:8px;" id="closeSettingsBtn">닫기</button>
@@ -1299,7 +1310,18 @@
       draftCashList=(paymentGroups['현금']||[]).slice();
       document.getElementById('settingLivingBudgetInput').value = livingBudget > 0 ? String(livingBudget) : '';
       renderSettingsTags();
+      switchSettingsTab('categories');
       document.getElementById('settingsModal').classList.add('open');
+    }
+    function switchSettingsTab(tab) {
+      document.querySelectorAll('.settings-tab').forEach(button => {
+        const isActive = button.getAttribute('data-settings-tab') === tab;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-selected', String(isActive));
+      });
+      document.querySelectorAll('[data-settings-panel]').forEach(panel => {
+        panel.hidden = panel.getAttribute('data-settings-panel') !== tab;
+      });
     }
     function closeSettingsModal() {
       document.getElementById('settingsModal').classList.remove('open');
@@ -1376,6 +1398,9 @@
     document.getElementById('closeAddBtn').onclick=closeAddModal;
     document.getElementById('openSettingsBtn').onclick=openSettingsModal;
     document.getElementById('closeSettingsBtn').onclick=closeSettingsModal;
+    document.querySelectorAll('.settings-tab').forEach(button => {
+      button.onclick = () => switchSettingsTab(button.getAttribute('data-settings-tab'));
+    });
     document.getElementById('openSettleBtn').onclick=openSettleModal;
     document.getElementById('closeSettleBtn').onclick=closeSettleModal;
     document.getElementById('openNotiBtn').onclick=openNotiModal;
