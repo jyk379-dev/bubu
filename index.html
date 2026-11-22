@@ -57,33 +57,6 @@
       position:relative;
     }
 
-    /* 카드 상단 당김 새로고침 파란 점 인디케이터 */
-    .ptr-indicator {
-      position:absolute;
-      top:8px;
-      left:50%;
-      transform:translate3d(-50%, -24px, 0);
-      width:10px;
-      height:10px;
-      border-radius:999px;
-      background:var(--accent);
-      z-index:15;
-      opacity:0;
-      pointer-events:none;
-      box-shadow:0 0 0 3px var(--accent-soft);
-      transition:transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease, box-shadow 0.15s ease;
-    }
-    .ptr-indicator.ready {
-      box-shadow:0 0 0 5px #dbeafe;
-    }
-    .ptr-indicator.spinning {
-      animation:pulsePtr 0.8s ease-in-out infinite;
-    }
-    @keyframes pulsePtr {
-      0%, 100% { transform:translate3d(-50%, 6px, 0) scale(0.95); opacity:0.75; }
-      50% { transform:translate3d(-50%, 6px, 0) scale(1.2); opacity:1; }
-    }
-
     /* 하단 내역 카드: 남은 영역 채우고 내부 리스트만 스크롤 */
     .list-card {
       flex:1 1 auto;
@@ -299,10 +272,8 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- 상단 고정 영역: 달력 상하 위치 고정 및 파란 점 인디케이터만 동작 -->
+    <!-- 상단 고정 영역: 달력 상하 위치 고정 및 좌우 스와이프 -->
     <div class="card cal-card" id="calCard">
-      <div class="ptr-indicator" id="ptrIndicator" aria-hidden="true"></div>
-
       <div class="cal-inner" id="calInner">
         <div class="cal-header">
           <div class="cal-title-wrap">
@@ -1534,147 +1505,70 @@
       closeModal('settingsModal');
     }
 
-    /* ===== 상단 달력 영역: 상하 위치 고정 + 파란 점 인디케이터 새로고침 + 좌우 스와이프 ===== */
+    /* ===== 상단 달력 영역: 상하 위치 고정 + 좌우 스와이프 ===== */
     (function setupCalendarGestures() {
       const calCard = document.getElementById('calCard');
       const calInner = document.getElementById('calInner');
       const swipeEl = document.getElementById('calSwipeArea');
       const trackEl = document.getElementById('calTrack');
-      const ptrEl = document.getElementById('ptrIndicator');
       const monthLabelEl = document.getElementById('monthLabel');
 
-      const refreshThreshold = 46;
-      const maxPullPx = 62;
       let startX = 0, startY = 0;
-      let currentPullPx = 0;
-      let gestureMode = null; // null | 'horizontal' | 'pull'
-      let isRefreshing = false;
-      let safetyResetTimer = null;
+      let isHorizontalSwiping = false;
 
       calInner.style.transform = '';
 
-      function setPullVisual(pullPx) {
-        const clamped = Math.max(0, Math.min(maxPullPx, pullPx));
-        currentPullPx = clamped;
-
-        if (clamped <= 2) {
-          ptrEl.style.opacity = '0';
-          ptrEl.style.transform = 'translate3d(-50%, -24px, 0)';
-          ptrEl.classList.remove('ready');
-          return;
-        }
-
-        const progress = Math.min(1, clamped / refreshThreshold);
-        const indY = Math.min(clamped - 24, 10);
-        ptrEl.style.opacity = String(Math.min(1, progress * 1.25));
-        ptrEl.style.transform = `translate3d(-50%, ${indY}px, 0)`;
-        ptrEl.classList.toggle('ready', clamped >= refreshThreshold);
-      }
-
-      function resetAllVisuals() {
-        if (safetyResetTimer) {
-          clearTimeout(safetyResetTimer);
-          safetyResetTimer = null;
-        }
-        isRefreshing = false;
-        gestureMode = null;
-        currentPullPx = 0;
-        calInner.classList.remove('dragging');
-        calInner.style.transform = '';
-        ptrEl.style.opacity = '0';
-        ptrEl.style.transform = 'translate3d(-50%, -24px, 0)';
-        ptrEl.classList.remove('ready', 'spinning');
-      }
-
-      function finishPullGesture() {
-        const pulled = currentPullPx;
-        calInner.classList.remove('dragging');
-        if (pulled >= refreshThreshold && !isRefreshing) {
-          isRefreshing = true;
-          ptrEl.style.opacity = '1';
-          ptrEl.style.transform = 'translate3d(-50%, 6px, 0)';
-          ptrEl.classList.add('ready', 'spinning');
-
-          safetyResetTimer = setTimeout(resetAllVisuals, 3000);
-
-          refreshDataFromServer().finally(() => {
-            setTimeout(resetAllVisuals, 250);
-          });
-        } else {
-          resetAllVisuals();
-        }
-      }
-
       calCard.addEventListener('touchstart', (e) => {
-        if (isRefreshing || !e.touches || e.touches.length !== 1) return;
+        if (!e.touches || e.touches.length !== 1) return;
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
-        currentPullPx = 0;
-        gestureMode = null;
+        isHorizontalSwiping = false;
       }, { passive: true });
 
       calCard.addEventListener('touchmove', (e) => {
-        if (isRefreshing || !e.touches || e.touches.length !== 1) return;
+        if (!e.touches || e.touches.length !== 1) return;
         const dx = e.touches[0].clientX - startX;
         const dy = e.touches[0].clientY - startY;
 
-        if (!gestureMode) {
+        if (!isHorizontalSwiping) {
           if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.25 && swipeEl.contains(e.target)) {
-            gestureMode = 'horizontal';
+            isHorizontalSwiping = true;
             trackEl.classList.add('dragging');
-          } else if (Math.abs(dy) > 8 && Math.abs(dy) >= Math.abs(dx)) {
-            gestureMode = 'pull';
+          } else {
+            return;
           }
         }
 
-        if (gestureMode === 'horizontal') {
-          e.preventDefault();
-          const width = swipeEl.clientWidth || 1;
-          const offsetRatio = dx / width;
-          const basePercent = -33.333333;
-          trackEl.style.transform = `translate3d(${basePercent + offsetRatio * 33.333333}%, 0, 0)`;
-        } else if (gestureMode === 'pull') {
-          e.preventDefault();
-          if (dy <= 0) {
-            setPullVisual(0);
-          } else {
-            const damped = maxPullPx * (1 - Math.exp(-dy / 130));
-            setPullVisual(damped);
-          }
-        }
+        e.preventDefault();
+        const width = swipeEl.clientWidth || 1;
+        const offsetRatio = dx / width;
+        const basePercent = -33.333333;
+        trackEl.style.transform = `translate3d(${basePercent + offsetRatio * 33.333333}%, 0, 0)`;
       }, { passive: false });
 
       function handleTouchEndOrCancel(e, isCancel) {
-        if (!gestureMode) return;
-        const mode = gestureMode;
-        gestureMode = null;
+        if (!isHorizontalSwiping) return;
+        isHorizontalSwiping = false;
+        trackEl.classList.remove('dragging');
 
-        if (mode === 'horizontal') {
-          trackEl.classList.remove('dragging');
-          const touch = e.changedTouches && e.changedTouches[0];
-          const dx = (!isCancel && touch) ? (touch.clientX - startX) : 0;
-          const width = swipeEl.clientWidth || 1;
-          const commitThreshold = Math.min(72, width * 0.24);
+        const touch = e.changedTouches && e.changedTouches[0];
+        const dx = (!isCancel && touch) ? (touch.clientX - startX) : 0;
+        const width = swipeEl.clientWidth || 1;
+        const commitThreshold = Math.min(72, width * 0.24);
 
-          if (Math.abs(dx) >= commitThreshold) {
-            const direction = dx > 0 ? -1 : 1;
-            const targetM = shiftMonthDate(viewYear, viewMonth, direction);
-            monthLabelEl.textContent = `${targetM.year}년 ${targetM.monthIndex + 1}월`;
-            trackEl.style.transform = dx > 0 ? 'translate3d(0%, 0, 0)' : 'translate3d(-66.666667%, 0, 0)';
+        if (Math.abs(dx) >= commitThreshold) {
+          const direction = dx > 0 ? -1 : 1;
+          const targetM = shiftMonthDate(viewYear, viewMonth, direction);
+          monthLabelEl.textContent = `${targetM.year}년 ${targetM.monthIndex + 1}월`;
+          trackEl.style.transform = dx > 0 ? 'translate3d(0%, 0, 0)' : 'translate3d(-66.666667%, 0, 0)';
 
-            setTimeout(() => {
-              viewYear = targetM.year;
-              viewMonth = targetM.monthIndex;
-              renderCalendar();
-            }, 275);
-          } else {
-            trackEl.style.transform = 'translate3d(-33.333333%, 0, 0)';
-          }
-          return;
-        }
-
-        if (mode === 'pull') {
-          finishPullGesture();
+          setTimeout(() => {
+            viewYear = targetM.year;
+            viewMonth = targetM.monthIndex;
+            renderCalendar();
+          }, 275);
+        } else {
+          trackEl.style.transform = 'translate3d(-33.333333%, 0, 0)';
         }
       }
 
