@@ -18,6 +18,7 @@
     }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif; background:var(--bg); color:var(--text); padding-bottom:96px; }
+    body.modal-open { overflow:hidden; }
     .wrap { max-width:520px; margin:0 auto; padding:12px; }
     .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,0.03); }
 
@@ -122,7 +123,7 @@
       border-radius:20px 20px 0 0;
       padding:18px 16px 24px;
     }
-    #settleModal .modal-sheet { height:66.6667dvh; max-height:66.6667dvh; }
+    #settleModal .modal-sheet { height:80dvh; max-height:80dvh; }
     .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
     .modal-title { font-size:16px; font-weight:700; }
     .modal-sub { font-size:12px; color:var(--sub); margin-top:2px; font-weight:500; }
@@ -973,13 +974,39 @@
       fillSubSelect(document.getElementById('paymentSub'), payGrpEl.value, '');
     }
 
+    let modalScrollPosition = 0;
+    function openModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (!document.body.classList.contains('modal-open')) {
+        modalScrollPosition = window.scrollY || document.documentElement.scrollTop;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${modalScrollPosition}px`;
+        document.body.style.width = '100%';
+        document.body.classList.add('modal-open');
+      }
+      modal.classList.add('open');
+      const sheet = modal.querySelector('.modal-sheet');
+      if (sheet) sheet.scrollTop = 0;
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('open');
+      if (document.querySelector('.modal-backdrop.open')) return;
+
+      document.body.classList.remove('modal-open');
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, modalScrollPosition);
+    }
+
     function openAddModal() {
       updateFormDate();
       setAddType('expense');
-      document.getElementById('addModal').classList.add('open');
+      openModal('addModal');
     }
     function closeAddModal() {
-      document.getElementById('addModal').classList.remove('open');
+      closeModal('addModal');
     }
 
     /* ===== 수정 모달 수입/지출 전환 ===== */
@@ -1017,10 +1044,10 @@
       document.getElementById('editMemo').value=target.memo;
 
       setEditType(tType, target.category, parsedPay.group, parsedPay.sub);
-      document.getElementById('editModal').classList.add('open');
+      openModal('editModal');
     }
     function closeEditModal() {
-      document.getElementById('editModal').classList.remove('open');
+      closeModal('editModal');
     }
 
     /* ===== 알림 모달 (최근 등록 이력 5개) ===== */
@@ -1070,11 +1097,11 @@
       currentUnreadSnapshot = new Set(getUnreadExpenses().map(e => String(e.id)));
       markAllCurrentAsRead();
       renderNotifications();
-      document.getElementById('notiModal').classList.add('open');
+      openModal('notiModal');
     }
     function closeNotiModal() {
       currentUnreadSnapshot.clear();
-      document.getElementById('notiModal').classList.remove('open');
+      closeModal('notiModal');
     }
 
     /* ===== 통계 모달 로직 (분류: 생활비 / 부동산•차 / 현금통장) ===== */
@@ -1281,10 +1308,10 @@
     function openSettleModal() {
       selectedSettleKey = null;
       switchStatTab('living');
-      document.getElementById('settleModal').classList.add('open');
+      openModal('settleModal');
     }
     function closeSettleModal() {
-      document.getElementById('settleModal').classList.remove('open');
+      closeModal('settleModal');
     }
 
     /* ===== 설정 모달 로직 ===== */
@@ -1319,7 +1346,7 @@
       document.getElementById('settingLivingBudgetInput').value = livingBudget > 0 ? String(livingBudget) : '';
       renderSettingsTags();
       switchSettingsTab('categories');
-      document.getElementById('settingsModal').classList.add('open');
+      openModal('settingsModal');
     }
     function switchSettingsTab(tab) {
       document.querySelectorAll('.settings-tab').forEach(button => {
@@ -1334,7 +1361,7 @@
       });
     }
     function closeSettingsModal() {
-      document.getElementById('settingsModal').classList.remove('open');
+      closeModal('settingsModal');
     }
 
     /* ===== 달력 좌우 슬라이딩(터치 스와이프) ===== */
@@ -1361,6 +1388,41 @@
           if (dx > 0) goPrevMonth();
           else goNextMonth();
         }
+      }, { passive: true });
+    })();
+
+    (function setupPullToRefresh() {
+      const threshold = 100;
+      let startX = 0;
+      let startY = 0;
+      let tracking = false;
+
+      document.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1 || window.scrollY > 0 || document.querySelector('.modal-backdrop.open')) {
+          tracking = false;
+          return;
+        }
+        if (e.target.closest('button, input, select, textarea, a, [contenteditable="true"]')) {
+          tracking = false;
+          return;
+        }
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        tracking = true;
+      }, { passive: true });
+
+      document.addEventListener('touchend', (e) => {
+        if (!tracking || e.changedTouches.length !== 1) return;
+        tracking = false;
+        const dx = e.changedTouches[0].clientX - startX;
+        const dy = e.changedTouches[0].clientY - startY;
+        if (dy >= threshold && dy > Math.abs(dx) * 1.2 && window.scrollY <= 0) {
+          window.location.reload();
+        }
+      }, { passive: true });
+
+      document.addEventListener('touchcancel', () => {
+        tracking = false;
       }, { passive: true });
     })();
 
