@@ -78,7 +78,7 @@
       padding-bottom:96px;
     }
 
-    .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; }
+    .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; }
     .cal-title-wrap { display:flex; align-items:center; gap:6px; }
     .cal-title { font-size:17px; font-weight:700; white-space:nowrap; }
     .sync-dot {
@@ -93,6 +93,39 @@
       50% { transform:scale(1.2); opacity:1; }
     }
     .nav-group { display:flex; gap:6px; align-items:center; }
+
+    /* 메인 달력 상단 미니 생활비 요약 (터치 비활성화) */
+    .cal-mini-summary {
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:6px;
+      margin-bottom:8px;
+      pointer-events:none;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    .cal-mini-box {
+      background:#f8fafc;
+      border:1px solid var(--line);
+      border-radius:9px;
+      padding:5px 4px;
+      text-align:center;
+    }
+    .cal-mini-label {
+      font-size:9.5px;
+      color:var(--sub);
+      font-weight:600;
+      line-height:1.2;
+      margin-bottom:2px;
+    }
+    .cal-mini-val {
+      font-size:11.5px;
+      font-weight:700;
+      line-height:1.2;
+      word-break:keep-all;
+    }
+    .cal-mini-val.budget { color:var(--accent); }
+    .cal-mini-val.exp { color:var(--danger); }
 
     .icon-btn {
       position:relative;
@@ -294,6 +327,22 @@
             <button type="button" class="icon-btn" id="openSettingsBtn" aria-label="설정">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
+          </div>
+        </div>
+
+        <!-- 연월과 달력 사이 미니 생활비 요약 (터치 비활성화) -->
+        <div class="cal-mini-summary" aria-hidden="true">
+          <div class="cal-mini-box">
+            <div class="cal-mini-label">생활비 예산</div>
+            <div class="cal-mini-val budget" id="calLivingBudgetVal">0원</div>
+          </div>
+          <div class="cal-mini-box">
+            <div class="cal-mini-label">지출 합계</div>
+            <div class="cal-mini-val exp" id="calLivingSpentVal">0원</div>
+          </div>
+          <div class="cal-mini-box">
+            <div class="cal-mini-label">남은 예산</div>
+            <div class="cal-mini-val" id="calLivingRemainVal">0원</div>
           </div>
         </div>
 
@@ -963,6 +1012,26 @@
       return { year: d.getFullYear(), monthIndex: d.getMonth() };
     }
 
+    /* ===== 메인 상단 생활비 예산 / 지출 합계 / 남은 예산 갱신 ===== */
+    function renderCalendarLivingSummary(year = viewYear, monthIndex = viewMonth) {
+      const budgetEl = document.getElementById('calLivingBudgetVal');
+      const spentEl = document.getElementById('calLivingSpentVal');
+      const remainEl = document.getElementById('calLivingRemainVal');
+      if (!budgetEl || !spentEl || !remainEl) return;
+
+      const cycle = getCycleRange(year, monthIndex);
+      const monthItems = expenses.filter(e => e.date && e.date >= cycle.startStr && e.date <= cycle.endStr);
+      const livingSpent = monthItems
+        .filter(e => normalizeGroup(e.author) === '생활비' && getEntryType(e) === 'expense')
+        .reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
+      const remaining = livingBudget - livingSpent;
+
+      budgetEl.textContent = `${livingBudget.toLocaleString()}원`;
+      spentEl.textContent = `-${livingSpent.toLocaleString()}원`;
+      remainEl.textContent = `${remaining >= 0 ? '' : '-'}${Math.abs(remaining).toLocaleString()}원`;
+      remainEl.style.color = remaining < 0 ? 'var(--danger)' : 'var(--income)';
+    }
+
     function buildMonthDaysMarkup(year, monthIndex, dailyExpSum, dailyIncSum) {
       const firstDay = new Date(year, monthIndex, 1).getDay();
       const lastDate = new Date(year, monthIndex + 1, 0).getDate();
@@ -1018,6 +1087,7 @@
       const trackEl = document.getElementById('calTrack');
 
       monthLabel.textContent = `${viewYear}년 ${viewMonth + 1}월`;
+      renderCalendarLivingSummary(viewYear, viewMonth);
 
       const dailyExpSum = {};
       const dailyIncSum = {};
@@ -1579,6 +1649,7 @@
             const direction = dx > 0 ? -1 : 1;
             const targetM = shiftMonthDate(viewYear, viewMonth, direction);
             monthLabelEl.textContent = `${targetM.year}년 ${targetM.monthIndex + 1}월`;
+            renderCalendarLivingSummary(targetM.year, targetM.monthIndex);
             trackEl.style.transform = dx > 0 ? 'translate3d(0%, 0, 0)' : 'translate3d(-66.666667%, 0, 0)';
 
             setTimeout(() => {
@@ -1742,6 +1813,7 @@
         return;
       }
       saveLivingBudget(val);
+      renderCalendarLivingSummary();
       setStatus(`생활비 예산 ${val.toLocaleString()}원 적용됨`, false, 2000);
       if (document.getElementById('settleModal').classList.contains('open')) {
         renderSettlement();
@@ -1796,6 +1868,7 @@
       paymentGroups = nextGroups;
       closeSettingsModal();
       renderSelectOptions();
+      renderCalendarLivingSummary();
       saveLocalCache();
       if (document.getElementById('settleModal').classList.contains('open')) {
         renderSettlement();
