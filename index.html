@@ -57,44 +57,31 @@
       position:relative;
     }
 
-    /* 카드 상단 새로고침 파란색 인디케이터 */
+    /* 카드 상단 당김 새로고침 파란 점 인디케이터 */
     .ptr-indicator {
       position:absolute;
       top:8px;
       left:50%;
-      transform:translate3d(-50%, -38px, 0);
-      height:30px;
-      padding:0 10px;
+      transform:translate3d(-50%, -24px, 0);
+      width:10px;
+      height:10px;
       border-radius:999px;
-      background:var(--accent-soft);
-      border:1px solid #bfdbfe;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      color:var(--accent);
+      background:var(--accent);
       z-index:15;
       opacity:0;
       pointer-events:none;
-      box-shadow:0 2px 8px rgba(37,99,235,0.14);
-      transition:transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease, background 0.15s ease, border-color 0.15s ease;
+      box-shadow:0 0 0 3px var(--accent-soft);
+      transition:transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease, box-shadow 0.15s ease;
     }
     .ptr-indicator.ready {
-      background:#dbeafe;
-      border-color:#93c5fd;
+      box-shadow:0 0 0 5px #dbeafe;
     }
-    .ptr-spinner {
-      width:13px;
-      height:13px;
-      border:2px solid #bfdbfe;
-      border-top-color:var(--accent);
-      border-radius:999px;
-      transition:transform 0.12s ease;
+    .ptr-indicator.spinning {
+      animation:pulsePtr 0.8s ease-in-out infinite;
     }
-    .ptr-indicator.spinning .ptr-spinner {
-      animation:spinPtr 0.65s linear infinite;
-    }
-    @keyframes spinPtr {
-      to { transform:rotate(360deg); }
+    @keyframes pulsePtr {
+      0%, 100% { transform:translate3d(-50%, 6px, 0) scale(0.95); opacity:0.75; }
+      50% { transform:translate3d(-50%, 6px, 0) scale(1.2); opacity:1; }
     }
 
     /* 하단 내역 카드: 남은 영역 채우고 내부 리스트만 스크롤 */
@@ -312,11 +299,9 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- 상단 고정 영역: 달력 상하 위치 고정 및 파란색 인디케이터만 동작 -->
+    <!-- 상단 고정 영역: 달력 상하 위치 고정 및 파란 점 인디케이터만 동작 -->
     <div class="card cal-card" id="calCard">
-      <div class="ptr-indicator" id="ptrIndicator" aria-hidden="true">
-        <span class="ptr-spinner" id="ptrSpinner"></span>
-      </div>
+      <div class="ptr-indicator" id="ptrIndicator" aria-hidden="true"></div>
 
       <div class="cal-inner" id="calInner">
         <div class="cal-header">
@@ -1549,14 +1534,13 @@
       closeModal('settingsModal');
     }
 
-    /* ===== 상단 달력 영역: 상하 위치 고정 + 파란색 인디케이터 새로고침 + 좌우 스와이프 ===== */
+    /* ===== 상단 달력 영역: 상하 위치 고정 + 파란 점 인디케이터 새로고침 + 좌우 스와이프 ===== */
     (function setupCalendarGestures() {
       const calCard = document.getElementById('calCard');
       const calInner = document.getElementById('calInner');
       const swipeEl = document.getElementById('calSwipeArea');
       const trackEl = document.getElementById('calTrack');
       const ptrEl = document.getElementById('ptrIndicator');
-      const ptrSpinner = document.getElementById('ptrSpinner');
       const monthLabelEl = document.getElementById('monthLabel');
 
       const refreshThreshold = 46;
@@ -1575,16 +1559,15 @@
 
         if (clamped <= 2) {
           ptrEl.style.opacity = '0';
-          ptrEl.style.transform = 'translate3d(-50%, -38px, 0)';
+          ptrEl.style.transform = 'translate3d(-50%, -24px, 0)';
           ptrEl.classList.remove('ready');
           return;
         }
 
         const progress = Math.min(1, clamped / refreshThreshold);
-        const indY = Math.min(clamped - 36, 12);
+        const indY = Math.min(clamped - 24, 10);
         ptrEl.style.opacity = String(Math.min(1, progress * 1.25));
         ptrEl.style.transform = `translate3d(-50%, ${indY}px, 0)`;
-        ptrSpinner.style.transform = `rotate(${Math.round(progress * 260)}deg)`;
         ptrEl.classList.toggle('ready', clamped >= refreshThreshold);
       }
 
@@ -1599,7 +1582,7 @@
         calInner.classList.remove('dragging');
         calInner.style.transform = '';
         ptrEl.style.opacity = '0';
-        ptrEl.style.transform = 'translate3d(-50%, -38px, 0)';
+        ptrEl.style.transform = 'translate3d(-50%, -24px, 0)';
         ptrEl.classList.remove('ready', 'spinning');
       }
 
