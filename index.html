@@ -385,9 +385,7 @@
       border-radius:9px;
       padding:7px 10px;
       cursor:pointer;
-      transition:border-color 0.15s, background 0.15s;
     }
-    .verify-ledger-box:hover,
     .verify-ledger-box.active {
       border-color:var(--accent);
       background:var(--accent-soft);
@@ -397,16 +395,11 @@
       color:var(--sub);
       font-weight:600;
       margin-bottom:2px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
     }
     .verify-ledger-amt {
       font-size:14px;
       font-weight:700;
-      color:var(--accent);
-      text-decoration:underline;
-      text-underline-offset:2px;
+      color:var(--text);
     }
     .verify-input-wrap input {
       padding:8px 10px;
@@ -632,7 +625,7 @@
       <div class="closing-sec">
         <div class="closing-sec-head">
           <div class="closing-sec-title">카드 명세서 검증 (생활비 기준)</div>
-          <div class="closing-sec-hint">가계부 합계 터치 시 내역 보기</div>
+          <div class="closing-sec-hint">국민·비씨 가족카드 통합</div>
         </div>
         <div id="closingCardVerifyList"></div>
       </div>
@@ -1780,7 +1773,7 @@
         const detailMarkup = isExpanded ? `
           <div class="detail-box">
             <div class="detail-box-header">
-              <div class="detail-box-title">${escapeHtml(card.name)} 생활비 내역 (${sortedItems.length}건)</div>
+              <div class="detail-box-title">생활비 · ${escapeHtml(card.name)} (${sortedItems.length}건)</div>
               <button type="button" class="detail-close" data-close-card="${escapeHtml(card.name)}">접기 ✕</button>
             </div>
             <div>
@@ -1813,10 +1806,7 @@
                 tabindex="0"
                 data-toggle-card="${escapeHtml(card.name)}"
               >
-                <div class="verify-field-label">
-                  <span>생활비 가계부 (${card.count}건)</span>
-                  <span style="color:var(--accent); font-weight:700;">${isExpanded ? '닫기' : '내역'}</span>
-                </div>
+                <div class="verify-field-label">생활비 가계부 합계 (${card.count}건)</div>
                 <div class="verify-ledger-amt">${card.ledgerTotal.toLocaleString()}원</div>
               </div>
               <div class="verify-input-wrap">
