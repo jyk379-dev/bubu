@@ -416,8 +416,8 @@
         <button type="button" class="type-btn inc" data-type="income">수입</button>
       </div>
       <div class="form-grid">
-        <div><input type="date" id="editDate" /></div>
-        <div>
+        <div class="full"><input type="date" id="editDate" /></div>
+        <div class="full">
           <select id="editAuthor">
             <option value="생활비">분류: 생활비</option>
             <option value="부동산•차">분류: 부동산•차</option>
@@ -596,6 +596,7 @@
 
     let expenses = [];
     let categories = ['식비','보험','카페','교통','회비','쇼핑','통신','생필품','관리비','구독서비스','마트','문화','건강'];
+    const propertyCarCategories = ['부동산','자동차할부'];
     let incomeCategories = ['급여','상여/보너스','용돈','부수입','이자/배당','환급/캐시백','기타수입'];
     const incomeAuthors = ['연근','귤이'];
     let paymentGroups = { '카드': ['우리카드'], '현금': ['농협체크'] };
@@ -945,14 +946,15 @@
       if(selectedSub) selectEl.value=selectedSub;
     }
 
-    function fillCategorySelect(selectEl, type, currentVal) {
-      const list = type === 'income' ? incomeCategories : categories;
+    function fillCategorySelect(selectEl, type, currentVal, author) {
+      const isPropertyCar = type !== 'income' && normalizeGroup(author) === '부동산•차';
+      const list = type === 'income' ? incomeCategories : isPropertyCar ? propertyCarCategories : categories;
       let html = list.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-      if (currentVal && !list.includes(currentVal)) {
+      if (currentVal && !list.includes(currentVal) && !isPropertyCar) {
         html = `<option value="${escapeHtml(currentVal)}">${escapeHtml(currentVal)}</option>` + html;
       }
       selectEl.innerHTML = html;
-      if (currentVal) selectEl.value = currentVal;
+      if (currentVal && (!isPropertyCar || list.includes(currentVal))) selectEl.value = currentVal;
     }
 
     function fillAuthorSelect(selectEl, type, currentVal) {
@@ -976,8 +978,18 @@
     }
 
     function renderSelectOptions() {
-      fillCategorySelect(document.getElementById('category'), addEntryType);
-      fillCategorySelect(document.getElementById('editCategory'), editEntryType);
+      fillCategorySelect(
+        document.getElementById('category'),
+        addEntryType,
+        document.getElementById('category').value,
+        document.getElementById('author').value
+      );
+      fillCategorySelect(
+        document.getElementById('editCategory'),
+        editEntryType,
+        document.getElementById('editCategory').value,
+        document.getElementById('editAuthor').value
+      );
       fillSubSelect(document.getElementById('paymentSub'), document.getElementById('paymentGroup').value||'카드', '');
       fillSubSelect(document.getElementById('editPaymentSub'), document.getElementById('editPaymentGroup').value||'카드', '');
     }
@@ -1237,9 +1249,9 @@
       document.querySelectorAll('#addTypeToggle .type-btn').forEach(btn=>{
         btn.classList.toggle('active', btn.getAttribute('data-type')===type);
       });
-      fillCategorySelect(document.getElementById('category'), type);
       const authorEl = document.getElementById('author');
       fillAuthorSelect(authorEl, type, authorEl.value);
+      fillCategorySelect(document.getElementById('category'), type, undefined, authorEl.value);
       const merchantInp = document.getElementById('merchant');
       const payGrpEl = document.getElementById('paymentGroup');
       const saveBtn = document.getElementById('saveBtn');
@@ -1288,9 +1300,9 @@
       document.querySelectorAll('#editTypeToggle .type-btn').forEach(btn=>{
         btn.classList.toggle('active', btn.getAttribute('data-type')===type);
       });
-      fillCategorySelect(document.getElementById('editCategory'), type, keepCategory);
       const authorEl = document.getElementById('editAuthor');
       fillAuthorSelect(authorEl, type, keepAuthor === undefined ? authorEl.value : keepAuthor);
+      fillCategorySelect(document.getElementById('editCategory'), type, keepCategory, authorEl.value);
       const payGrpEl = document.getElementById('editPaymentGroup');
       document.querySelectorAll('#editModal .payment-field').forEach(field => {
         field.style.display = type === 'income' ? 'none' : '';
@@ -1871,6 +1883,22 @@
       btn.onclick=()=>setEditType(btn.getAttribute('data-type'));
     });
 
+    document.getElementById('author').onchange=()=>{
+      fillCategorySelect(
+        document.getElementById('category'),
+        addEntryType,
+        document.getElementById('category').value,
+        document.getElementById('author').value
+      );
+    };
+    document.getElementById('editAuthor').onchange=()=>{
+      fillCategorySelect(
+        document.getElementById('editCategory'),
+        editEntryType,
+        document.getElementById('editCategory').value,
+        document.getElementById('editAuthor').value
+      );
+    };
     document.getElementById('paymentGroup').onchange=()=>fillSubSelect(document.getElementById('paymentSub'),document.getElementById('paymentGroup').value,'');
     document.getElementById('editPaymentGroup').onchange=()=>fillSubSelect(document.getElementById('editPaymentSub'),document.getElementById('editPaymentGroup').value,'');
 
