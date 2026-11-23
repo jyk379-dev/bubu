@@ -1,0 +1,54 @@
+name: Deploy Apps Script
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Code.gs'
+      - 'index.html'
+      - 'appsscript.json'
+      - '.claspignore'
+      - '.github/workflows/deploy-apps-script.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install clasp
+        run: npm install --global @google/clasp@3
+
+      - name: Configure Apps Script project
+        env:
+          APPS_SCRIPT_ID: ${{ vars.APPS_SCRIPT_ID }}
+          APPS_SCRIPT_DEPLOYMENT_ID: ${{ vars.APPS_SCRIPT_DEPLOYMENT_ID }}
+        run: |
+          test -n "$APPS_SCRIPT_ID"
+          test -n "$APPS_SCRIPT_DEPLOYMENT_ID"
+          node -e "require('fs').writeFileSync('.clasp.json', JSON.stringify({ scriptId: process.env.APPS_SCRIPT_ID, rootDir: '.' }, null, 2));"
+
+      - name: Configure clasp authentication
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          test -n "$CLASPRC_JSON"
+          printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+
+      - name: Push source to Apps Script
+        run: clasp push
+
+      - name: Update existing web app deployment
+        env:
+          APPS_SCRIPT_DEPLOYMENT_ID: ${{ vars.APPS_SCRIPT_DEPLOYMENT_ID }}
+        run: |
+          clasp update-deployment "$APPS_SCRIPT_DEPLOYMENT_ID" --description "GitHub ${GITHUB_SHA}"
