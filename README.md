@@ -20,9 +20,9 @@ Google Apps Script와 Spreadsheet에서 처리합니다. `main` 브랜치에
    `%USERPROFILE%\.clasprc.json`에 있습니다. 토큰이므로 커밋하거나 채팅으로
    공유하지 마세요.
 4. 첫 배포 전에 원격 프로젝트에 추가 소스 파일이 없는지 확인합니다.
-   `.claspignore`는 `Code.gs`와 `index.html`만 업로드하므로, 원격
-   `appsscript.json` 설정은 그대로 유지됩니다. `clasp push`는 원격
-   프로젝트의 소스 파일 전체를 교체합니다.
+   `.claspignore`는 `Code.gs`, `index.html`, `appsscript.json`을 업로드하며,
+   `clasp push --force`는 이 저장소의 manifest로 원격 manifest를 덮어씁니다.
+   `clasp push`는 원격 프로젝트의 소스 파일 전체를 교체합니다.
 5. 설정 파일을 `main`에 푸시하면 자동 배포됩니다. 또는 GitHub Actions에서
    **Deploy Apps Script**를 수동 실행할 수 있습니다.
 

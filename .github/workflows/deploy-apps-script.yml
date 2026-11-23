@@ -44,7 +44,7 @@ jobs:
           printf '%s' "$CLASPRC_JSON" > "$HOME/.clasprc.json"
 
       - name: Push source to Apps Script
-        run: clasp push
+        run: clasp push --force
 
       - name: Update existing web app deployment
         env:
