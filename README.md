@@ -4,8 +4,8 @@
 
 GitHub는 소스 관리와 배포 자동화를 담당하고, 앱 실행과 데이터 저장은 계속
 Google Apps Script와 Spreadsheet에서 처리합니다. `main` 브랜치에
-`Code.gs`, `index.html`, `appsscript.json` 변경을 푸시하면 GitHub Actions가
-`clasp`로 소스를 올리고 기존 웹앱 배포를 갱신합니다.
+`Code.gs`와 `index.html` 변경을 푸시하면 GitHub Actions가 `clasp`로 소스를
+올리고 기존 웹앱 배포를 갱신합니다.
 
 ### 최초 설정
 
@@ -19,10 +19,10 @@ Google Apps Script와 Spreadsheet에서 처리합니다. `main` 브랜치에
    인증한 계정의 `.clasprc.json` 내용입니다. Windows에서는 보통
    `%USERPROFILE%\.clasprc.json`에 있습니다. 토큰이므로 커밋하거나 채팅으로
    공유하지 마세요.
-4. 첫 배포 전에 원격 프로젝트에 추가 소스 파일이 없는지 확인하고,
-   기존 `appsscript.json`의 시간대·OAuth 설정이 저장소의 manifest와
-   일치하는지 확인합니다. `.claspignore`에 포함된 파일만 업로드하며,
-   `clasp push`는 원격 프로젝트의 소스 파일 전체를 교체합니다.
+4. 첫 배포 전에 원격 프로젝트에 추가 소스 파일이 없는지 확인합니다.
+   `.claspignore`는 `Code.gs`와 `index.html`만 업로드하므로, 원격
+   `appsscript.json` 설정은 그대로 유지됩니다. `clasp push`는 원격
+   프로젝트의 소스 파일 전체를 교체합니다.
 5. 설정 파일을 `main`에 푸시하면 자동 배포됩니다. 또는 GitHub Actions에서
    **Deploy Apps Script**를 수동 실행할 수 있습니다.
 

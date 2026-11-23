@@ -7,7 +7,6 @@ on:
     paths:
       - 'Code.gs'
       - 'index.html'
-      - 'appsscript.json'
       - '.claspignore'
       - '.github/workflows/deploy-apps-script.yml'
   workflow_dispatch:
