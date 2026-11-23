@@ -232,7 +232,8 @@
       border-radius:20px 20px 0 0;
       padding:18px 16px 24px;
     }
-    #settleModal .modal-sheet { height:80dvh; max-height:80dvh; }
+    #settleModal .modal-sheet,
+    #closingModal .modal-sheet { height:82dvh; max-height:82dvh; }
     .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
     .modal-title { font-size:16px; font-weight:700; }
     .modal-sub { font-size:12px; color:var(--sub); margin-top:2px; font-weight:500; }
@@ -292,6 +293,126 @@
     .detail-box-title { font-size:13px; font-weight:700; color:var(--accent); }
     .detail-close { border:none; background:transparent; color:var(--sub); font-size:12px; font-weight:600; cursor:pointer; }
 
+    /* 월마감 모달 전용 스타일 */
+    .closing-sec { margin-bottom:14px; }
+    .closing-sec-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .closing-sec-title { font-size:13.5px; font-weight:700; color:var(--text); }
+    .closing-sec-hint { font-size:11px; color:var(--sub); }
+
+    .cash-saving-card {
+      background:linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+      border:1px solid #bbf7d0;
+      border-radius:14px;
+      padding:12px 14px;
+      margin-bottom:14px;
+    }
+    .cash-saving-top {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:8px;
+    }
+    .cash-saving-label {
+      font-size:13px;
+      font-weight:700;
+      color:var(--text);
+    }
+    .cash-saving-val {
+      font-size:18px;
+      font-weight:800;
+    }
+    .cash-saving-val.plus { color:var(--income); }
+    .cash-saving-val.minus { color:var(--danger); }
+    .cash-saving-breakdown {
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:6px;
+      padding-top:8px;
+      border-top:1px dashed rgba(0,0,0,0.08);
+      font-size:11.5px;
+      text-align:center;
+    }
+    .cs-sub-label { color:var(--sub); font-size:10.5px; margin-bottom:2px; }
+    .cs-sub-val { font-weight:700; color:var(--text); }
+
+    .verify-card {
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:11px 12px;
+      margin-bottom:8px;
+      background:#fff;
+    }
+    .verify-card-top {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:8px;
+    }
+    .verify-card-name {
+      font-size:14px;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .family-tag {
+      font-size:10px;
+      font-weight:700;
+      padding:2px 6px;
+      border-radius:999px;
+      background:#f4f4f5;
+      color:var(--sub);
+    }
+    .verify-badge {
+      font-size:11px;
+      font-weight:700;
+      padding:3px 8px;
+      border-radius:999px;
+    }
+    .verify-badge.pending { background:#f4f4f5; color:var(--sub); }
+    .verify-badge.match { background:var(--income-soft); color:var(--income); }
+    .verify-badge.diff { background:var(--danger-soft); color:var(--danger); }
+
+    .verify-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      align-items:center;
+    }
+    .verify-ledger-box {
+      background:#f8fafc;
+      border:1px solid var(--line);
+      border-radius:9px;
+      padding:7px 10px;
+    }
+    .verify-field-label {
+      font-size:10.5px;
+      color:var(--sub);
+      font-weight:600;
+      margin-bottom:2px;
+    }
+    .verify-ledger-amt {
+      font-size:14px;
+      font-weight:700;
+      color:var(--text);
+    }
+    .verify-input-wrap input {
+      padding:8px 10px;
+      font-size:14px;
+      font-weight:700;
+      text-align:right;
+      border-radius:9px;
+    }
+    .verify-diff-row {
+      margin-top:7px;
+      padding-top:6px;
+      border-top:1px solid #f4f4f5;
+      display:flex;
+      justify-content:space-between;
+      font-size:12px;
+      color:var(--sub);
+    }
+
     /* 알림 리스트 스타일 */
     .noti-list { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
     .noti-item { display:flex; justify-content:space-between; align-items:center; padding:11px 12px; border-top:1px solid #f0f0f3; cursor:pointer; background:#fff; }
@@ -314,6 +435,10 @@
             <span class="sync-dot" id="syncDot" title="동기화 중"></span>
           </div>
           <div class="nav-group">
+            <!-- 0. 월마감 (통계 왼쪽) -->
+            <button type="button" class="icon-btn" id="openClosingBtn" aria-label="월마감" title="월마감">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+            </button>
             <!-- 1. 생활비 통계 -->
             <button type="button" class="icon-btn" id="openSettleBtn" aria-label="생활비 통계" title="생활비 통계">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
@@ -448,6 +573,59 @@
       </div>
       <div id="notiListContainer"></div>
       <button type="button" class="btn btn-ghost" style="margin-top:12px;" id="closeNotiBtn">닫기</button>
+    </div>
+  </div>
+
+  <!-- 월마감 모달 -->
+  <div class="modal-backdrop" id="closingModal">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="closingTitle">월마감</div>
+          <div class="modal-sub" id="closingPeriodLabel"></div>
+        </div>
+        <div class="nav-group">
+          <button type="button" class="icon-btn" id="closingPrevMonth" aria-label="이전 마감 월">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <button type="button" class="icon-btn" id="closingNextMonth" aria-label="다음 마감 월">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 1. 현금 저축 (총 수입 - 지출 합계(생활비 + 부동산•차)) -->
+      <div class="cash-saving-card">
+        <div class="cash-saving-top">
+          <div class="cash-saving-label">현금 저축 (수입 - 생활비·부동산•차)</div>
+          <div class="cash-saving-val plus" id="closingCashSavingVal">0원</div>
+        </div>
+        <div class="cash-saving-breakdown">
+          <div>
+            <div class="cs-sub-label">총 수입</div>
+            <div class="cs-sub-val" id="closingTotalIncomeVal" style="color:var(--income);">+0원</div>
+          </div>
+          <div>
+            <div class="cs-sub-label">생활비 지출</div>
+            <div class="cs-sub-val" id="closingLivingExpVal" style="color:var(--danger);">-0원</div>
+          </div>
+          <div>
+            <div class="cs-sub-label">부동산•차 지출</div>
+            <div class="cs-sub-val" id="closingPropCarExpVal" style="color:var(--danger);">-0원</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 카드별 명세서 금액 검증 (생활비 카드 내역 대조) -->
+      <div class="closing-sec">
+        <div class="closing-sec-head">
+          <div class="closing-sec-title">카드 명세서 검증 (생활비 기준)</div>
+          <div class="closing-sec-hint">국민·비씨 가족카드 통합</div>
+        </div>
+        <div id="closingCardVerifyList"></div>
+      </div>
+
+      <button type="button" class="btn btn-ghost" style="margin-top:8px;" id="closeClosingBtn">닫기</button>
     </div>
   </div>
 
@@ -593,6 +771,7 @@
     const LIVING_BUDGET_KEY = 'couple_ledger_living_budget_v1';
     const CASH_BALANCE_KEY = 'couple_ledger_cash_balance_v1';
     const DATA_CACHE_KEY = 'couple_ledger_data_cache_v1';
+    const CARD_STATEMENTS_KEY = 'couple_ledger_card_statements_v1';
 
     let expenses = [];
     let categories = ['식비','보험','카페','교통','회비','쇼핑','통신','생필품','관리비','구독서비스','마트','문화','건강'];
@@ -603,6 +782,7 @@
 
     let livingBudget = loadLivingBudget();
     let cashBalance = loadCashBalance();
+    let cardStatements = loadCardStatements();
 
     let draftCategories = [];
     let draftIncomeCategories = [];
@@ -639,6 +819,40 @@
       if (val === '부동산•차') return '부동산•차';
       if (val === '현금통장') return '현금통장';
       return '생활비';
+    }
+
+    /* ===== 월마감 카드명 정규화 (국민카드, 비씨카드는 (연근)/(귤이) 구분 없이 통합) ===== */
+    function normalizeClosingCardName(rawSub) {
+      const name = String(rawSub || '').trim();
+      if (!name) return '기타 카드';
+      const stripped = name.replace(/\s*\((?:연근|귤이)\)\s*/g, '').trim();
+      if (stripped.includes('국민') || stripped.toUpperCase().includes('KB')) return '국민카드';
+      if (stripped.includes('비씨') || stripped.toUpperCase().includes('BC')) return '비씨카드';
+      return name;
+    }
+
+    function isUnifiedFamilyCard(cardName) {
+      return cardName === '국민카드' || cardName === '비씨카드';
+    }
+
+    function loadCardStatements() {
+      try {
+        const raw = localStorage.getItem(CARD_STATEMENTS_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveCardStatements() {
+      try {
+        localStorage.setItem(CARD_STATEMENTS_KEY, JSON.stringify(cardStatements));
+      } catch (e) {}
+    }
+
+    function getMonthKey(year, monthIndex) {
+      return `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
     }
 
     /* ===== 토큰 기반 동기화 인디케이터 제어 ===== */
@@ -721,6 +935,9 @@
       renderList();
       if (document.getElementById('settleModal').classList.contains('open')) {
         renderSettlement();
+      }
+      if (document.getElementById('closingModal').classList.contains('open')) {
+        renderClosing();
       }
       if (document.getElementById('notiModal').classList.contains('open')) {
         renderNotifications();
@@ -1414,6 +1631,163 @@
       closeModal('notiModal');
     }
 
+    /* ===== 월마감 모달 로직 ===== */
+    function renderClosing() {
+      const cycle = getCycleRange(viewYear, viewMonth);
+      const monthKey = getMonthKey(viewYear, viewMonth);
+      document.getElementById('closingTitle').textContent = `${viewYear}년 ${viewMonth + 1}월 월마감`;
+      document.getElementById('closingPeriodLabel').textContent = `마감 기간: ${cycle.label} (25일~24일)`;
+
+      const monthItems = expenses.filter(e => e.date && e.date >= cycle.startStr && e.date <= cycle.endStr);
+
+      // 1. 현금 저축 계산: 총 수입 - 지출 합계 (생활비 + 부동산•차)
+      const totalIncome = monthItems
+        .filter(e => getEntryType(e) === 'income')
+        .reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
+
+      const livingExpTotal = monthItems
+        .filter(e => normalizeGroup(e.author) === '생활비' && getEntryType(e) === 'expense')
+        .reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
+
+      const propCarExpTotal = monthItems
+        .filter(e => normalizeGroup(e.author) === '부동산•차' && getEntryType(e) === 'expense')
+        .reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
+
+      const totalMainExpense = livingExpTotal + propCarExpTotal;
+      const cashSaving = totalIncome - totalMainExpense;
+
+      const savingEl = document.getElementById('closingCashSavingVal');
+      savingEl.textContent = `${cashSaving >= 0 ? '+' : '-'}${Math.abs(cashSaving).toLocaleString()}원`;
+      savingEl.className = `cash-saving-val ${cashSaving >= 0 ? 'plus' : 'minus'}`;
+
+      document.getElementById('closingTotalIncomeVal').textContent = `+${totalIncome.toLocaleString()}원`;
+      document.getElementById('closingLivingExpVal').textContent = `-${livingExpTotal.toLocaleString()}원`;
+      document.getElementById('closingPropCarExpVal').textContent = `-${propCarExpTotal.toLocaleString()}원`;
+
+      // 2. 카드별 명세서 검증 (분류: 생활비 내역과 비교, 국민카드·비씨카드는 하나로 통합)
+      const cardLedgerMap = new Map();
+      const configuredCards = Array.isArray(paymentGroups['카드']) ? paymentGroups['카드'] : [];
+      configuredCards.forEach(rawCard => {
+        const cardName = normalizeClosingCardName(rawCard);
+        if (!cardLedgerMap.has(cardName)) {
+          cardLedgerMap.set(cardName, { name: cardName, ledgerTotal: 0, count: 0 });
+        }
+      });
+
+      const livingCardItems = monthItems.filter(e =>
+        normalizeGroup(e.author) === '생활비' &&
+        getEntryType(e) === 'expense' &&
+        parsePaymentString(e.payment).group === '카드'
+      );
+
+      livingCardItems.forEach(item => {
+        const parsed = parsePaymentString(item.payment);
+        const cardName = normalizeClosingCardName(parsed.sub);
+        if (!cardLedgerMap.has(cardName)) {
+          cardLedgerMap.set(cardName, { name: cardName, ledgerTotal: 0, count: 0 });
+        }
+        const entry = cardLedgerMap.get(cardName);
+        entry.ledgerTotal += Number(item.amount || 0);
+        entry.count += 1;
+      });
+
+      const cardList = Array.from(cardLedgerMap.values());
+      const verifyContainer = document.getElementById('closingCardVerifyList');
+
+      if (cardList.length === 0) {
+        verifyContainer.innerHTML = '<div class="empty">등록된 카드 수단 또는 생활비 카드 지출 내역이 없습니다.</div>';
+        return;
+      }
+
+      const monthStatements = cardStatements[monthKey] || {};
+
+      verifyContainer.innerHTML = cardList.map(card => {
+        const rawSavedVal = monthStatements[card.name];
+        const hasInput = rawSavedVal !== undefined && rawSavedVal !== null && String(rawSavedVal) !== '';
+        const stmtAmt = hasInput ? Number(rawSavedVal) : null;
+        const diff = hasInput ? (stmtAmt - card.ledgerTotal) : null;
+
+        let badgeClass = 'pending';
+        let badgeText = '명세서 미입력';
+        let diffDesc = '명세서 청구 금액을 입력하면 생활비 내역과 자동 비교합니다.';
+
+        if (hasInput && Number.isFinite(stmtAmt)) {
+          if (diff === 0) {
+            badgeClass = 'match';
+            badgeText = '일치 ✓';
+            diffDesc = '명세서 금액과 생활비 카드 지출이 정확히 일치합니다.';
+          } else if (diff > 0) {
+            badgeClass = 'diff';
+            badgeText = `차이 +${diff.toLocaleString()}원`;
+            diffDesc = `명세서가 ${diff.toLocaleString()}원 더 많습니다 (가계부 누락 확인).`;
+          } else {
+            badgeClass = 'diff';
+            badgeText = `차이 ${diff.toLocaleString()}원`;
+            diffDesc = `가계부가 ${Math.abs(diff).toLocaleString()}원 더 많습니다 (중복/취소 확인).`;
+          }
+        }
+
+        return `
+          <div class="verify-card" data-card-name="${escapeHtml(card.name)}">
+            <div class="verify-card-top">
+              <div class="verify-card-name">
+                <span>${escapeHtml(card.name)}</span>
+                ${isUnifiedFamilyCard(card.name) ? '<span class="family-tag">가족카드 통합</span>' : ''}
+              </div>
+              <span class="verify-badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <div class="verify-grid">
+              <div class="verify-ledger-box">
+                <div class="verify-field-label">생활비 가계부 합계 (${card.count}건)</div>
+                <div class="verify-ledger-amt">${card.ledgerTotal.toLocaleString()}원</div>
+              </div>
+              <div class="verify-input-wrap">
+                <div class="verify-field-label">명세서 청구 금액 (원)</div>
+                <input
+                  type="number"
+                  class="stmt-amount-input"
+                  data-card-name="${escapeHtml(card.name)}"
+                  inputmode="numeric"
+                  min="0"
+                  placeholder="금액 입력"
+                  value="${hasInput ? escapeHtml(String(stmtAmt)) : ''}"
+                />
+              </div>
+            </div>
+            <div class="verify-diff-row">
+              <span>${diffDesc}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      verifyContainer.querySelectorAll('.stmt-amount-input').forEach(inputEl => {
+        inputEl.onchange = () => {
+          const cardName = inputEl.getAttribute('data-card-name');
+          const rawStr = inputEl.value.trim();
+          if (!cardStatements[monthKey]) cardStatements[monthKey] = {};
+
+          if (rawStr === '') {
+            delete cardStatements[monthKey][cardName];
+          } else {
+            const parsed = Math.max(0, Number(rawStr) || 0);
+            cardStatements[monthKey][cardName] = parsed;
+          }
+          saveCardStatements();
+          renderClosing();
+        };
+      });
+    }
+
+    function openClosingModal() {
+      renderClosing();
+      openModal('closingModal');
+    }
+
+    function closeClosingModal() {
+      closeModal('closingModal');
+    }
+
     /* ===== 통계 모달 로직 (분류: 생활비 / 부동산•차 / 현금통장) ===== */
     function isCarItem(item) {
       const text = `${item.category || ''} ${item.merchant || ''} ${item.memo || ''}`;
@@ -1861,6 +2235,7 @@
     }
     setupBackdropDismiss('addModal', closeAddModal);
     setupBackdropDismiss('editModal', closeEditModal);
+    setupBackdropDismiss('closingModal', closeClosingModal);
     setupBackdropDismiss('settleModal', closeSettleModal);
     setupBackdropDismiss('notiModal', closeNotiModal);
     setupBackdropDismiss('settingsModal', closeSettingsModal);
@@ -1899,6 +2274,8 @@
     document.querySelectorAll('.settings-tab').forEach(button => {
       button.onclick = () => switchSettingsTab(button.getAttribute('data-settings-tab'));
     });
+    document.getElementById('openClosingBtn').onclick=openClosingModal;
+    document.getElementById('closeClosingBtn').onclick=closeClosingModal;
     document.getElementById('openSettleBtn').onclick=openSettleModal;
     document.getElementById('closeSettleBtn').onclick=closeSettleModal;
     document.getElementById('openNotiBtn').onclick=openNotiModal;
@@ -1971,6 +2348,17 @@
       renderSettlement();
     };
 
+    document.getElementById('closingPrevMonth').onclick=()=>{
+      viewMonth--; if(viewMonth<0){viewMonth=11;viewYear--;}
+      renderCalendar();
+      renderClosing();
+    };
+    document.getElementById('closingNextMonth').onclick=()=>{
+      viewMonth++; if(viewMonth>11){viewMonth=0;viewYear++;}
+      renderCalendar();
+      renderClosing();
+    };
+
     document.getElementById('addCategoryTagBtn').onclick=()=>{const inp=document.getElementById('newCategoryInput'),val=inp.value.trim();if(val&&!draftCategories.includes(val)){draftCategories.push(val);renderSettingsTags();}inp.value='';};
     document.getElementById('addIncomeCategoryTagBtn').onclick=()=>{const inp=document.getElementById('newIncomeCategoryInput'),val=inp.value.trim();if(val&&!draftIncomeCategories.includes(val)){draftIncomeCategories.push(val);renderSettingsTags();}inp.value='';};
     document.getElementById('addCardTagBtn').onclick=()=>{const inp=document.getElementById('newCardInput'),val=inp.value.trim();if(val&&!draftCardList.includes(val)){draftCardList.push(val);renderSettingsTags();}inp.value='';};
@@ -2002,6 +2390,9 @@
       saveLocalCache();
       if (document.getElementById('settleModal').classList.contains('open')) {
         renderSettlement();
+      }
+      if (document.getElementById('closingModal').classList.contains('open')) {
+        renderClosing();
       }
       setStatus('');
 
