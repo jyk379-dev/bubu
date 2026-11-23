@@ -397,8 +397,8 @@
         <div><select id="category"></select></div>
         <div><input type="text" id="merchant" placeholder="사용처 (예: 마트)" /></div>
         <div><input type="number" id="amount" placeholder="금액 (원)" inputmode="numeric" /></div>
-        <div><select id="paymentGroup"><option value="카드">결제: 카드</option><option value="현금">결제: 현금</option></select></div>
-        <div><select id="paymentSub"></select></div>
+        <div class="payment-field"><select id="paymentGroup"><option value="카드">결제: 카드</option><option value="현금">결제: 현금</option></select></div>
+        <div class="payment-field"><select id="paymentSub"></select></div>
         <div class="full"><input type="text" id="memo" placeholder="메모 (선택)" /></div>
       </div>
       <button type="button" class="btn btn-primary" id="saveBtn">지출 저장하기</button>
@@ -426,8 +426,8 @@
         </div>
         <div><select id="editCategory"></select></div>
         <div><input type="number" id="editAmount" inputmode="numeric" placeholder="금액" /></div>
-        <div><select id="editPaymentGroup"><option value="카드">카드</option><option value="현금">현금</option></select></div>
-        <div><select id="editPaymentSub"></select></div>
+        <div class="payment-field"><select id="editPaymentGroup"><option value="카드">카드</option><option value="현금">현금</option></select></div>
+        <div class="payment-field"><select id="editPaymentSub"></select></div>
         <div class="full"><input type="text" id="editMerchant" placeholder="사용처 / 입금처" /></div>
         <div class="full"><input type="text" id="editMemo" placeholder="메모" /></div>
       </div>
@@ -597,6 +597,7 @@
     let expenses = [];
     let categories = ['식비','보험','카페','교통','회비','쇼핑','통신','생필품','관리비','구독서비스','마트','문화','건강'];
     let incomeCategories = ['급여','상여/보너스','용돈','부수입','이자/배당','환급/캐시백','기타수입'];
+    const incomeAuthors = ['연근','귤이'];
     let paymentGroups = { '카드': ['우리카드'], '현금': ['농협체크'] };
 
     let livingBudget = loadLivingBudget();
@@ -609,6 +610,7 @@
 
     let addEntryType = 'expense';
     let editEntryType = 'expense';
+    let editReturnContext = null;
 
     let statMainTab = 'living';
     let settleMode = 'category';
@@ -675,7 +677,7 @@
       try {
         const payload = {
           expenses,
-          settings: { categories, incomeCategories, paymentGroups },
+          settings: { categories, incomeCategories, paymentGroups, livingBudget },
           updatedAt: Date.now()
         };
         localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(payload));
@@ -696,6 +698,7 @@
           if (Array.isArray(parsed.settings.incomeCategories) && parsed.settings.incomeCategories.length > 0) {
             incomeCategories = parsed.settings.incomeCategories;
           }
+          applySavedSettings(parsed.settings);
           if (parsed.settings.paymentGroups) {
             paymentGroups = {
               '카드': Array.isArray(parsed.settings.paymentGroups['카드']) && parsed.settings.paymentGroups['카드'].length > 0
@@ -705,7 +708,7 @@
             };
           }
         }
-        expenses = parsed.expenses.map(row => ({ ...row, author: normalizeGroup(row.author) }));
+        expenses = parsed.expenses.map(normalizeEntryAuthor);
         return true;
       } catch (e) {
         return false;
@@ -739,6 +742,28 @@
       try {
         localStorage.setItem(LIVING_BUDGET_KEY, String(n));
       } catch (e) {}
+    }
+
+    function applySavedSettings(saved) {
+      const settings = saved && saved.settings ? saved.settings : saved;
+      if (!settings || settings.livingBudget === undefined || settings.livingBudget === null || settings.livingBudget === '') return;
+      const value = Number(settings.livingBudget);
+      if (Number.isFinite(value) && value >= 0) {
+        saveLivingBudget(value);
+      }
+    }
+
+    async function saveServerSettings() {
+      await apiPost({
+        action: 'saveSettings',
+        settings: { categories, incomeCategories, paymentGroups, livingBudget }
+      });
+      const data = await apiGetInit();
+      const savedBudget = data.settings && Number(data.settings.livingBudget);
+      if (!Number.isFinite(savedBudget) || savedBudget !== livingBudget) {
+        throw new Error('서버에서 생활비 예산 저장을 확인하지 못했습니다.');
+      }
+      return data.settings;
     }
 
     function loadCashBalance() {
@@ -867,6 +892,18 @@
       if (incomeCategories.includes(item.category) && !categories.includes(item.category)) return 'income';
       return 'expense';
     }
+    function normalizeEntryAuthor(item) {
+      return {
+        ...item,
+        author: getEntryType(item) === 'income' ? String(item.author || '') : normalizeGroup(item.author)
+      };
+    }
+    function getEntryAuthorLabel(item) {
+      if (getEntryType(item) === 'income') {
+        return incomeAuthors.includes(String(item.author || '')) ? item.author : '';
+      }
+      return normalizeGroup(item.author);
+    }
     function parsePaymentString(payStr) {
       const raw=String(payStr||'').trim();
       if(raw.includes('>')){
@@ -916,6 +953,26 @@
       }
       selectEl.innerHTML = html;
       if (currentVal) selectEl.value = currentVal;
+    }
+
+    function fillAuthorSelect(selectEl, type, currentVal) {
+      if (type === 'income') {
+        selectEl.innerHTML = incomeAuthors.map(author =>
+          `<option value="${escapeHtml(author)}">${escapeHtml(author)}</option>`
+        ).join('');
+        selectEl.value = incomeAuthors.includes(String(currentVal || '')) ? currentVal : incomeAuthors[0];
+        return;
+      }
+
+      const groups = [
+        ['생활비', '분류: 생활비'],
+        ['부동산•차', '분류: 부동산•차'],
+        ['현금통장', '분류: 현금통장']
+      ];
+      selectEl.innerHTML = groups.map(([value, label]) =>
+        `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`
+      ).join('');
+      selectEl.value = normalizeGroup(currentVal);
     }
 
     function renderSelectOptions() {
@@ -980,6 +1037,7 @@
         if (data.settings) {
           if (Array.isArray(data.settings.categories) && data.settings.categories.length > 0) categories = data.settings.categories;
           if (Array.isArray(data.settings.incomeCategories) && data.settings.incomeCategories.length > 0) incomeCategories = data.settings.incomeCategories;
+          applySavedSettings(data.settings);
           if (data.settings.paymentGroups) {
             paymentGroups = {
               '카드': Array.isArray(data.settings.paymentGroups['카드']) && data.settings.paymentGroups['카드'].length > 0 ? data.settings.paymentGroups['카드'] : ['우리카드'],
@@ -990,7 +1048,7 @@
         }
 
         const pendingTemps = expenses.filter(e => String(e.id).startsWith('temp_'));
-        const serverExpenses = rows.map(row => ({ ...row, author: normalizeGroup(row.author) }));
+        const serverExpenses = rows.map(normalizeEntryAuthor);
         expenses = [...serverExpenses, ...pendingTemps];
 
         if (seenIdSet === null) {
@@ -1154,11 +1212,11 @@
         const sign = isInc ? '+' : '-';
         const cls = isInc ? 'inc' : 'exp';
         const fallbackLabel = isInc ? '수입 내역' : '내역 없음';
-        const grpLabel = normalizeGroup(item.author);
+        const grpLabel = getEntryAuthorLabel(item);
         return `<div class="item" data-id="${escapeHtml(item.id)}">
           <div>
             <div class="item-main">[${escapeHtml(item.category)}] ${escapeHtml(item.merchant||fallbackLabel)}</div>
-            <div class="item-sub">${escapeHtml(grpLabel)} · ${escapeHtml(item.payment||(isInc?'현금':'카드'))}${item.memo?' · '+escapeHtml(item.memo):''}</div>
+            <div class="item-sub">${[grpLabel, isInc ? '' : (item.payment || '카드'), item.memo].filter(Boolean).map(escapeHtml).join(' · ')}</div>
           </div>
           <div class="item-amt ${cls}">${sign}${Number(item.amount||0).toLocaleString()}원</div>
         </div>`;
@@ -1180,12 +1238,18 @@
         btn.classList.toggle('active', btn.getAttribute('data-type')===type);
       });
       fillCategorySelect(document.getElementById('category'), type);
+      const authorEl = document.getElementById('author');
+      fillAuthorSelect(authorEl, type, authorEl.value);
       const merchantInp = document.getElementById('merchant');
       const payGrpEl = document.getElementById('paymentGroup');
       const saveBtn = document.getElementById('saveBtn');
 
+      document.querySelectorAll('#addModal .payment-field').forEach(field => {
+        field.style.display = type === 'income' ? 'none' : '';
+      });
+
       if (type === 'income') {
-        merchantInp.placeholder = '입금처 (예: 급여, 용돈)';
+        merchantInp.placeholder = '입금처';
         payGrpEl.value = '현금';
         saveBtn.textContent = '수입 저장하기';
         saveBtn.className = 'btn btn-income';
@@ -1219,13 +1283,18 @@
     }
 
     /* ===== 수정 모달 수입/지출 전환 ===== */
-    function setEditType(type, keepCategory, keepPayGroup, keepPaySub) {
+    function setEditType(type, keepCategory, keepPayGroup, keepPaySub, keepAuthor) {
       editEntryType = type;
       document.querySelectorAll('#editTypeToggle .type-btn').forEach(btn=>{
         btn.classList.toggle('active', btn.getAttribute('data-type')===type);
       });
       fillCategorySelect(document.getElementById('editCategory'), type, keepCategory);
+      const authorEl = document.getElementById('editAuthor');
+      fillAuthorSelect(authorEl, type, keepAuthor === undefined ? authorEl.value : keepAuthor);
       const payGrpEl = document.getElementById('editPaymentGroup');
+      document.querySelectorAll('#editModal .payment-field').forEach(field => {
+        field.style.display = type === 'income' ? 'none' : '';
+      });
       if (keepPayGroup) {
         payGrpEl.value = keepPayGroup;
         fillSubSelect(document.getElementById('editPaymentSub'), keepPayGroup, keepPaySub||'');
@@ -1238,25 +1307,45 @@
       updateBtn.style.marginTop = '0';
     }
 
-    function openEditModal(id) {
+    function openEditModal(id, returnToSettlement = false) {
       const resolvedId = tempIdToRealIdMap.get(String(id)) || String(id);
       const target=expenses.find(e=>String(e.id)===resolvedId);
       if(!target) return;
+      editReturnContext = returnToSettlement ? {
+        selectedDate,
+        viewYear,
+        viewMonth,
+        statMainTab,
+        settleMode,
+        selectedSettleKey
+      } : null;
       const tType = getEntryType(target);
       const parsedPay = parsePaymentString(target.payment);
 
       document.getElementById('editId').value=target.id;
       document.getElementById('editDate').value=target.date;
-      document.getElementById('editAuthor').value=normalizeGroup(target.author);
       document.getElementById('editMerchant').value=target.merchant;
       document.getElementById('editAmount').value=target.amount;
       document.getElementById('editMemo').value=target.memo;
 
-      setEditType(tType, target.category, parsedPay.group, parsedPay.sub);
+      setEditType(tType, target.category, parsedPay.group, parsedPay.sub, target.author);
       openModal('editModal');
     }
     function closeEditModal() {
       closeModal('editModal');
+      if (!editReturnContext) return;
+
+      const returnContext = editReturnContext;
+      editReturnContext = null;
+      selectedDate = returnContext.selectedDate;
+      viewYear = returnContext.viewYear;
+      viewMonth = returnContext.viewMonth;
+      statMainTab = returnContext.statMainTab;
+      settleMode = returnContext.settleMode;
+      selectedSettleKey = returnContext.selectedSettleKey;
+      renderCalendar();
+      openModal('settleModal');
+      renderSettlement();
     }
 
     /* ===== 알림 모달 (최근 등록 이력 5개) ===== */
@@ -1281,13 +1370,13 @@
         const sign = isInc ? '+' : '-';
         const cls = isInc ? 'inc' : 'exp';
         const typeLabel = isInc ? '수입 등록' : '지출 등록';
-        const grpLabel = normalizeGroup(item.author);
+        const grpLabel = getEntryAuthorLabel(item);
         const isUnread = currentUnreadSnapshot.has(String(item.id));
         return `<div class="noti-item ${isUnread ? 'unread' : ''}" data-id="${escapeHtml(item.id)}">
           <div>
-            <div class="noti-meta">${isUnread ? '<span class="noti-new-dot"></span>' : ''}${escapeHtml(grpLabel)} · ${typeLabel} · 거래일 ${escapeHtml(item.date)}</div>
+            <div class="noti-meta">${isUnread ? '<span class="noti-new-dot"></span>' : ''}${[grpLabel, typeLabel, `거래일 ${item.date}`].filter(Boolean).map(escapeHtml).join(' · ')}</div>
             <div class="noti-title">[${escapeHtml(item.category)}] ${escapeHtml(item.merchant || (isInc?'수입 내역':'내역 없음'))}</div>
-            <div class="item-sub">${escapeHtml(item.payment || '')}${item.memo ? ' · '+escapeHtml(item.memo) : ''}</div>
+            <div class="item-sub">${[isInc ? '' : item.payment, item.memo].filter(Boolean).map(escapeHtml).join(' · ')}</div>
           </div>
           <div class="item-amt ${cls}">${sign}${Number(item.amount||0).toLocaleString()}원</div>
         </div>`;
@@ -1440,7 +1529,7 @@
         statContainer.querySelectorAll('.detail-box .item').forEach(el => {
           el.onclick = () => {
             closeSettleModal();
-            openEditModal(el.getAttribute('data-id'));
+            openEditModal(el.getAttribute('data-id'), true);
           };
         });
       } else if (statMainTab === 'property_car') {
@@ -1476,7 +1565,7 @@
         container.querySelectorAll('.item').forEach(el => {
           el.onclick = () => {
             closeSettleModal();
-            openEditModal(el.getAttribute('data-id'));
+            openEditModal(el.getAttribute('data-id'), true);
           };
         });
       } else {
@@ -1510,7 +1599,7 @@
         container.querySelectorAll('.item').forEach(el => {
           el.onclick = () => {
             closeSettleModal();
-            openEditModal(el.getAttribute('data-id'));
+            openEditModal(el.getAttribute('data-id'), true);
           };
         });
       }
@@ -1812,12 +1901,34 @@
         setStatus('생활비 예산은 0원 이상 입력해 주세요.', true, 3000);
         return;
       }
+      const previousBudget = livingBudget;
       saveLivingBudget(val);
+      saveLocalCache();
       renderCalendarLivingSummary();
-      setStatus(`생활비 예산 ${val.toLocaleString()}원 적용됨`, false, 2000);
+      setStatus('생활비 예산 저장 중...');
       if (document.getElementById('settleModal').classList.contains('open')) {
         renderSettlement();
       }
+      const token = startSyncToken('budget');
+      saveServerSettings().then(saved => {
+        applySavedSettings(saved);
+        saveLocalCache();
+        renderCalendarLivingSummary();
+        if (document.getElementById('settleModal').classList.contains('open')) {
+          renderSettlement();
+        }
+        setStatus(`생활비 예산 ${livingBudget.toLocaleString()}원 저장됨`, false, 2500);
+      }).catch(err => {
+        saveLivingBudget(previousBudget);
+        saveLocalCache();
+        renderCalendarLivingSummary();
+        if (document.getElementById('settleModal').classList.contains('open')) {
+          renderSettlement();
+        }
+        setStatus('생활비 예산 저장 실패 (이전 값으로 복구됨): ' + err.message, true, 4500);
+      }).finally(() => {
+        finishSyncToken(token);
+      });
     };
 
     document.querySelectorAll('.settle-tab').forEach(tab=>{
@@ -1850,6 +1961,7 @@
     /* ===== 낙관적 설정 저장 ===== */
     document.getElementById('saveSettingsBtn').onclick=()=>{
       const budgetInputVal = Number(document.getElementById('settingLivingBudgetInput').value);
+      const prevLivingBudget = livingBudget;
       if (Number.isFinite(budgetInputVal) && budgetInputVal >= 0) {
         saveLivingBudget(budgetInputVal);
       }
@@ -1876,23 +1988,24 @@
       setStatus('');
 
       const token = startSyncToken('settings');
-      apiPost({
-        action: 'saveSettings',
-        settings: { categories, incomeCategories, paymentGroups: nextGroups }
-      }).then(saved => {
+      saveServerSettings().then(saved => {
         if (saved) {
           categories = saved.categories || categories;
           incomeCategories = saved.incomeCategories || incomeCategories;
           paymentGroups = saved.paymentGroups || paymentGroups;
+          applySavedSettings(saved);
           renderSelectOptions();
           saveLocalCache();
+          renderCalendarLivingSummary();
         }
       }).catch(err => {
         categories = prevCategories;
         incomeCategories = prevIncomeCategories;
         paymentGroups = prevPaymentGroups;
+        saveLivingBudget(prevLivingBudget);
         renderSelectOptions();
         saveLocalCache();
+        renderCalendarLivingSummary();
         setStatus('설정 동기화 실패 (이전 설정으로 복구됨): ' + err.message, true, 4000);
       }).finally(() => {
         finishSyncToken(token);
@@ -1907,10 +2020,14 @@
         setStatus('금액을 1원 이상 입력해 주세요.', true, 3000);
         return;
       }
-      const payment=formatPaymentLabel(document.getElementById('paymentGroup').value,document.getElementById('paymentSub').value);
       const currentType = addEntryType;
+      const payment = currentType === 'income'
+        ? ''
+        : formatPaymentLabel(document.getElementById('paymentGroup').value,document.getElementById('paymentSub').value);
       const tempId = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-      const groupVal = normalizeGroup(document.getElementById('author').value);
+      const groupVal = currentType === 'income'
+        ? document.getElementById('author').value
+        : normalizeGroup(document.getElementById('author').value);
 
       const item={
         type: currentType,
@@ -1947,7 +2064,9 @@
           ...(saved && typeof saved === 'object' ? saved : item),
           id: resolvedId,
           type: (saved && saved.type) || currentType,
-          author: normalizeGroup((saved && saved.author) || item.author)
+          author: currentType === 'income'
+            ? item.author
+            : normalizeGroup((saved && saved.author) || item.author)
         };
         const realId = String(normalizedSaved.id);
         tempIdToRealIdMap.set(tempId, realId);
@@ -1990,9 +2109,13 @@
       }
 
       const prevSnapshot = expenses.map(e => ({ ...e }));
-      const payment=formatPaymentLabel(document.getElementById('editPaymentGroup').value,document.getElementById('editPaymentSub').value);
       const currentType = editEntryType;
-      const groupVal = normalizeGroup(document.getElementById('editAuthor').value);
+      const payment = currentType === 'income'
+        ? ''
+        : formatPaymentLabel(document.getElementById('editPaymentGroup').value,document.getElementById('editPaymentSub').value);
+      const groupVal = currentType === 'income'
+        ? document.getElementById('editAuthor').value
+        : normalizeGroup(document.getElementById('editAuthor').value);
 
       const item={
         id,
@@ -2012,9 +2135,11 @@
       };
 
       expenses = expenses.map(e => String(e.id) === id ? optimisticNormalized : e);
-      selectedDate = optimisticNormalized.date;
-      viewYear = Number(optimisticNormalized.date.slice(0, 4));
-      viewMonth = Number(optimisticNormalized.date.slice(5, 7)) - 1;
+      if (!editReturnContext) {
+        selectedDate = optimisticNormalized.date;
+        viewYear = Number(optimisticNormalized.date.slice(0, 4));
+        viewMonth = Number(optimisticNormalized.date.slice(5, 7)) - 1;
+      }
       saveLocalCache();
 
       closeEditModal();
@@ -2030,7 +2155,9 @@
           ...(updated && typeof updated === 'object' ? updated : item),
           id: (updated && updated.id) || id,
           type: (updated && updated.type) || currentType,
-          author: normalizeGroup((updated && updated.author) || item.author)
+          author: currentType === 'income'
+            ? item.author
+            : normalizeGroup((updated && updated.author) || item.author)
         };
         expenses = expenses.map(e => String(e.id) === String(normalized.id) ? normalized : e);
         saveLocalCache();
@@ -2096,6 +2223,7 @@
       if(data.settings){
         if(Array.isArray(data.settings.categories)&&data.settings.categories.length>0) categories=data.settings.categories;
         if(Array.isArray(data.settings.incomeCategories)&&data.settings.incomeCategories.length>0) incomeCategories=data.settings.incomeCategories;
+        applySavedSettings(data.settings);
         if(data.settings.paymentGroups){
           paymentGroups={
             '카드':Array.isArray(data.settings.paymentGroups['카드'])&&data.settings.paymentGroups['카드'].length>0?data.settings.paymentGroups['카드']:['우리카드'],
@@ -2106,7 +2234,7 @@
       }
 
       const pendingTemps = expenses.filter(e => String(e.id).startsWith('temp_'));
-      const serverExpenses = rows.map(row=>({...row, author:normalizeGroup(row.author)}));
+      const serverExpenses = rows.map(normalizeEntryAuthor);
       expenses = [...serverExpenses, ...pendingTemps];
 
       if (seenIdSet === null) {
