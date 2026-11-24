@@ -854,6 +854,37 @@
       return Number.isFinite(n) ? n : null;
     }
 
+    function buildVerifyComparisonState(stmtAmt, ledgerTotal) {
+      const hasInput = stmtAmt !== null && stmtAmt !== undefined && !Number.isNaN(Number(stmtAmt));
+      if (!hasInput) {
+        return {
+          badgeClass: 'pending',
+          badgeText: '명세서 미입력',
+          diffDesc: '명세서 청구 금액을 입력하면 생활비 내역과 자동 비교합니다.'
+        };
+      }
+      const diff = Number(stmtAmt) - Number(ledgerTotal || 0);
+      if (diff === 0) {
+        return {
+          badgeClass: 'match',
+          badgeText: '일치 ✓',
+          diffDesc: '명세서 금액과 생활비 카드 지출이 정확히 일치합니다.'
+        };
+      }
+      if (diff > 0) {
+        return {
+          badgeClass: 'diff',
+          badgeText: `차이 +${diff.toLocaleString()}원`,
+          diffDesc: `명세서가 ${diff.toLocaleString()}원 더 많습니다 (가계부 누락 확인).`
+        };
+      }
+      return {
+        badgeClass: 'diff',
+        badgeText: `차이 ${diff.toLocaleString()}원`,
+        diffDesc: `가계부가 ${Math.abs(diff).toLocaleString()}원 더 많습니다 (중복/취소 확인).`
+      };
+    }
+
     function loadCardStatements() {
       try {
         const raw = localStorage.getItem(CARD_STATEMENTS_KEY);
@@ -1743,28 +1774,8 @@
         const rawSavedVal = monthStatements[card.name];
         const hasInput = rawSavedVal !== undefined && rawSavedVal !== null && String(rawSavedVal) !== '';
         const stmtAmt = hasInput ? Number(rawSavedVal) : null;
-        const diff = hasInput ? (stmtAmt - card.ledgerTotal) : null;
         const isExpanded = expandedClosingCard === card.name;
-
-        let badgeClass = 'pending';
-        let badgeText = '명세서 미입력';
-        let diffDesc = '명세서 청구 금액을 입력하면 생활비 내역과 자동 비교합니다.';
-
-        if (hasInput && Number.isFinite(stmtAmt)) {
-          if (diff === 0) {
-            badgeClass = 'match';
-            badgeText = '일치 ✓';
-            diffDesc = '명세서 금액과 생활비 카드 지출이 정확히 일치합니다.';
-          } else if (diff > 0) {
-            badgeClass = 'diff';
-            badgeText = `차이 +${diff.toLocaleString()}원`;
-            diffDesc = `명세서가 ${diff.toLocaleString()}원 더 많습니다 (가계부 누락 확인).`;
-          } else {
-            badgeClass = 'diff';
-            badgeText = `차이 ${diff.toLocaleString()}원`;
-            diffDesc = `가계부가 ${Math.abs(diff).toLocaleString()}원 더 많습니다 (중복/취소 확인).`;
-          }
-        }
+        const state = buildVerifyComparisonState(hasInput && Number.isFinite(stmtAmt) ? stmtAmt : null, card.ledgerTotal);
 
         const sortedItems = isExpanded
           ? card.items.slice().sort((a, b) => b.date.localeCompare(a.date))
@@ -1791,13 +1802,13 @@
         ` : '';
 
         return `
-          <div class="verify-card" data-card-name="${escapeHtml(card.name)}">
+          <div class="verify-card" data-card-name="${escapeHtml(card.name)}" data-ledger-total="${card.ledgerTotal}">
             <div class="verify-card-top">
               <div class="verify-card-name">
                 <span>${escapeHtml(card.name)}</span>
                 ${isUnifiedFamilyCard(card.name) ? '<span class="family-tag">가족카드 통합</span>' : ''}
               </div>
-              <span class="verify-badge ${badgeClass}">${badgeText}</span>
+              <span class="verify-badge ${state.badgeClass}">${state.badgeText}</span>
             </div>
             <div class="verify-grid">
               <div
@@ -1817,12 +1828,12 @@
                   data-card-name="${escapeHtml(card.name)}"
                   inputmode="numeric"
                   placeholder="금액 입력"
-                  value="${hasInput ? escapeHtml(formatCommaInputNumber(stmtAmt)) : ''}"
+                  value="${hasInput && Number.isFinite(stmtAmt) ? escapeHtml(formatCommaInputNumber(stmtAmt)) : ''}"
                 />
               </div>
             </div>
             <div class="verify-diff-row">
-              <span>${diffDesc}</span>
+              <span>${state.diffDesc}</span>
             </div>
             ${detailMarkup}
           </div>
@@ -1853,26 +1864,41 @@
       });
 
       verifyContainer.querySelectorAll('.stmt-amount-input').forEach(inputEl => {
-        inputEl.addEventListener('input', () => {
-          const formatted = formatCommaInputNumber(inputEl.value);
+        const cardEl = inputEl.closest('.verify-card');
+        const badgeEl = cardEl ? cardEl.querySelector('.verify-badge') : null;
+        const diffSpanEl = cardEl ? cardEl.querySelector('.verify-diff-row span') : null;
+        const ledgerTotal = Number(cardEl ? cardEl.getAttribute('data-ledger-total') : 0) || 0;
+
+        const syncStatementValue = () => {
+          const cardName = inputEl.getAttribute('data-card-name');
+          const parsed = parseCommaInputNumber(inputEl.value);
+          const formatted = parsed === null ? '' : formatCommaInputNumber(parsed);
+
           if (inputEl.value !== formatted) {
             inputEl.value = formatted;
           }
-        });
 
-        inputEl.addEventListener('change', () => {
-          const cardName = inputEl.getAttribute('data-card-name');
-          const parsed = parseCommaInputNumber(inputEl.value);
           if (!cardStatements[monthKey]) cardStatements[monthKey] = {};
-
           if (parsed === null) {
             delete cardStatements[monthKey][cardName];
           } else {
             cardStatements[monthKey][cardName] = Math.max(0, parsed);
           }
           saveCardStatements();
-          renderClosing();
-        });
+
+          const state = buildVerifyComparisonState(parsed, ledgerTotal);
+          if (badgeEl) {
+            badgeEl.className = `verify-badge ${state.badgeClass}`;
+            badgeEl.textContent = state.badgeText;
+          }
+          if (diffSpanEl) {
+            diffSpanEl.textContent = state.diffDesc;
+          }
+        };
+
+        inputEl.addEventListener('input', syncStatementValue);
+        inputEl.addEventListener('change', syncStatementValue);
+        inputEl.addEventListener('blur', syncStatementValue);
       });
     }
 
