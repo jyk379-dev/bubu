@@ -78,21 +78,22 @@
       padding-bottom:96px;
     }
 
-    .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; }
-    .cal-title-wrap { display:flex; align-items:center; gap:6px; }
+    .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:6px; }
+    .cal-title-wrap { display:flex; align-items:center; gap:6px; min-width:0; }
     .cal-title { font-size:17px; font-weight:700; white-space:nowrap; }
     .sync-dot {
       width:7px; height:7px; border-radius:999px;
       background:var(--accent);
       display:none;
       animation:pulseSync 1.1s infinite ease-in-out;
+      flex-shrink:0;
     }
     .sync-dot.active { display:inline-block; }
     @keyframes pulseSync {
       0%, 100% { transform:scale(0.85); opacity:0.5; }
       50% { transform:scale(1.2); opacity:1; }
     }
-    .nav-group { display:flex; gap:6px; align-items:center; }
+    .nav-group { display:flex; gap:4px; align-items:center; flex-shrink:0; }
 
     /* 메인 달력 상단 미니 생활비 요약 (터치 비활성화) */
     .cal-mini-summary {
@@ -129,7 +130,7 @@
 
     .icon-btn {
       position:relative;
-      width:36px; height:36px;
+      width:34px; height:34px;
       border:1px solid var(--line);
       background:#fff;
       border-radius:10px;
@@ -233,11 +234,99 @@
       padding:18px 16px 24px;
     }
     #settleModal .modal-sheet,
-    #closingModal .modal-sheet { height:82dvh; max-height:82dvh; }
+    #closingModal .modal-sheet,
+    #searchModal .modal-sheet { height:82dvh; max-height:82dvh; }
     .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
     .modal-title { font-size:16px; font-weight:700; }
     .modal-sub { font-size:12px; color:var(--sub); margin-top:2px; font-weight:500; }
     .modal-actions { display:grid; grid-template-columns:1fr 2fr; gap:8px; margin-top:12px; }
+
+    /* 검색 모달 스타일 */
+    .search-input-wrap {
+      position:relative;
+      margin-bottom:10px;
+    }
+    .search-input-wrap input {
+      padding:11px 38px 11px 36px;
+      font-size:15px;
+      border-radius:12px;
+      background:#f8fafc;
+    }
+    .search-input-wrap input:focus {
+      outline:none;
+      border-color:var(--accent);
+      background:#fff;
+    }
+    .search-input-icon {
+      position:absolute;
+      left:12px;
+      top:50%;
+      transform:translateY(-50%);
+      color:var(--sub);
+      pointer-events:none;
+      display:flex;
+      align-items:center;
+    }
+    .search-clear-btn {
+      position:absolute;
+      right:8px;
+      top:50%;
+      transform:translateY(-50%);
+      width:24px;
+      height:24px;
+      border:none;
+      border-radius:999px;
+      background:#e4e4e7;
+      color:var(--sub);
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+    }
+    .search-clear-btn.show { display:inline-flex; }
+    .search-filter-tabs {
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:6px;
+      background:#f4f4f5;
+      padding:4px;
+      border-radius:12px;
+      margin-bottom:10px;
+    }
+    .search-filter-tab {
+      border:none;
+      background:transparent;
+      padding:7px 6px;
+      border-radius:9px;
+      font-size:13px;
+      font-weight:700;
+      color:var(--sub);
+      cursor:pointer;
+    }
+    .search-filter-tab.active {
+      background:#fff;
+      color:var(--text);
+      box-shadow:0 1px 3px rgba(0,0,0,0.08);
+    }
+    .search-summary-bar {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      font-size:12px;
+      color:var(--sub);
+      padding:6px 2px 8px;
+      border-bottom:1px solid #f0f0f3;
+      margin-bottom:4px;
+      gap:8px;
+    }
+    .search-summary-totals {
+      display:flex;
+      gap:8px;
+      font-weight:700;
+    }
 
     /* 설정 모달 태그 */
     .setting-sec { margin-bottom:14px; }
@@ -439,23 +528,28 @@
             <div class="cal-title" id="monthLabel"></div>
             <span class="sync-dot" id="syncDot" title="동기화 중"></span>
           </div>
+          <!-- 아이콘 순서: 월마감, 통계, 검색, 알림, 설정 -->
           <div class="nav-group">
-            <!-- 0. 월마감 (통계 왼쪽) -->
+            <!-- 1. 월마감 -->
             <button type="button" class="icon-btn" id="openClosingBtn" aria-label="월마감" title="월마감">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
             </button>
-            <!-- 1. 생활비 통계 -->
-            <button type="button" class="icon-btn" id="openSettleBtn" aria-label="생활비 통계" title="생활비 통계">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <!-- 2. 통계 -->
+            <button type="button" class="icon-btn" id="openSettleBtn" aria-label="통계" title="통계">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
             </button>
-            <!-- 2. 알림 -->
-            <button type="button" class="icon-btn" id="openNotiBtn" aria-label="알림">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <!-- 3. 검색 -->
+            <button type="button" class="icon-btn" id="openSearchBtn" aria-label="검색" title="검색">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
+            <!-- 4. 알림 -->
+            <button type="button" class="icon-btn" id="openNotiBtn" aria-label="알림" title="알림">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
               <span class="icon-badge" id="notiBadge"></span>
             </button>
-            <!-- 3. 설정 -->
-            <button type="button" class="icon-btn" id="openSettingsBtn" aria-label="설정">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <!-- 5. 설정 -->
+            <button type="button" class="icon-btn" id="openSettingsBtn" aria-label="설정" title="설정">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
           </div>
         </div>
@@ -566,6 +660,36 @@
         <button type="button" class="btn btn-primary" style="margin-top:0;" id="updateItemBtn">수정 저장</button>
       </div>
       <button type="button" class="btn btn-ghost" style="margin-top:8px;" id="closeModalBtn">닫기</button>
+    </div>
+  </div>
+
+  <!-- 검색 모달 -->
+  <div class="modal-backdrop" id="searchModal">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div class="modal-title">내역 검색</div>
+      </div>
+      <div class="search-input-wrap">
+        <span class="search-input-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </span>
+        <input type="text" id="searchQueryInput" placeholder="사용처, 카테고리, 메모, 결제수단, 날짜" autocomplete="off" />
+        <button type="button" class="search-clear-btn" id="clearSearchBtn" aria-label="검색어 지우기">✕</button>
+      </div>
+      <div class="search-filter-tabs" id="searchFilterTabs">
+        <button type="button" class="search-filter-tab active" data-filter="all">전체</button>
+        <button type="button" class="search-filter-tab" data-filter="expense">지출</button>
+        <button type="button" class="search-filter-tab" data-filter="income">수입</button>
+      </div>
+      <div class="search-summary-bar" id="searchSummaryBar" style="display:none;">
+        <span id="searchResultCount">0건</span>
+        <div class="search-summary-totals">
+          <span class="tot-inc" id="searchResultInc" style="display:none;">+0원</span>
+          <span class="tot-exp" id="searchResultExp" style="display:none;">-0원</span>
+        </div>
+      </div>
+      <div id="searchResultContainer"></div>
+      <button type="button" class="btn btn-ghost" style="margin-top:12px;" id="closeSearchBtn">닫기</button>
     </div>
   </div>
 
@@ -803,6 +927,9 @@
     let settleMode = 'category';
     let selectedSettleKey = null;
 
+    let searchQuery = '';
+    let searchTypeFilter = 'all';
+
     let seenIdSet = loadSeenIdSet();
     let currentUnreadSnapshot = new Set();
 
@@ -988,6 +1115,9 @@
       }
       if (document.getElementById('closingModal').classList.contains('open')) {
         renderClosing();
+      }
+      if (document.getElementById('searchModal').classList.contains('open')) {
+        renderSearchResults();
       }
       if (document.getElementById('notiModal').classList.contains('open')) {
         renderNotifications();
@@ -1586,7 +1716,7 @@
       updateBtn.style.marginTop = '0';
     }
 
-    function openEditModal(id, returnToSettlement = false, returnToClosing = false) {
+    function openEditModal(id, returnToSettlement = false, returnToClosing = false, returnToSearch = false) {
       const resolvedId = tempIdToRealIdMap.get(String(id)) || String(id);
       const target=expenses.find(e=>String(e.id)===resolvedId);
       if(!target) return;
@@ -1604,6 +1734,13 @@
         viewYear,
         viewMonth,
         expandedClosingCard
+      } : returnToSearch ? {
+        mode: 'search',
+        selectedDate,
+        viewYear,
+        viewMonth,
+        searchQuery,
+        searchTypeFilter
       } : null;
       const tType = getEntryType(target);
       const parsedPay = parsePaymentString(target.payment);
@@ -1632,6 +1769,11 @@
         expandedClosingCard = returnContext.expandedClosingCard;
         openModal('closingModal');
         renderClosing();
+      } else if (returnContext.mode === 'search') {
+        searchQuery = returnContext.searchQuery;
+        searchTypeFilter = returnContext.searchTypeFilter;
+        openModal('searchModal');
+        renderSearchResults();
       } else {
         statMainTab = returnContext.statMainTab;
         settleMode = returnContext.settleMode;
@@ -1639,6 +1781,123 @@
         openModal('settleModal');
         renderSettlement();
       }
+    }
+
+    /* ===== 검색 모달 로직 ===== */
+    function renderSearchResults() {
+      const container = document.getElementById('searchResultContainer');
+      const summaryBar = document.getElementById('searchSummaryBar');
+      const countEl = document.getElementById('searchResultCount');
+      const incEl = document.getElementById('searchResultInc');
+      const expEl = document.getElementById('searchResultExp');
+      const clearBtn = document.getElementById('clearSearchBtn');
+
+      const trimmed = searchQuery.trim();
+      clearBtn.classList.toggle('show', trimmed.length > 0);
+
+      document.querySelectorAll('#searchFilterTabs .search-filter-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-filter') === searchTypeFilter);
+      });
+
+      if (!trimmed && searchTypeFilter === 'all') {
+        summaryBar.style.display = 'none';
+        container.innerHTML = '<div class="empty">사용처, 카테고리, 메모, 결제수단 또는 날짜를 입력하세요.</div>';
+        return;
+      }
+
+      const tokens = trimmed.toLowerCase().split(/\s+/).filter(Boolean);
+
+      const matched = expenses
+        .filter(item => {
+          const itemType = getEntryType(item);
+          if (searchTypeFilter !== 'all' && itemType !== searchTypeFilter) return false;
+          if (tokens.length === 0) return true;
+
+          const haystack = [
+            item.date,
+            item.category,
+            item.merchant,
+            item.memo,
+            getEntryAuthorLabel(item),
+            itemType === 'income' ? '수입' : '지출',
+            itemType === 'income' ? '' : item.payment
+          ].filter(Boolean).join(' ').toLowerCase();
+
+          return tokens.every(tok => haystack.includes(tok));
+        })
+        .slice()
+        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+
+      if (matched.length === 0) {
+        summaryBar.style.display = 'flex';
+        countEl.textContent = '검색 결과 0건';
+        incEl.style.display = 'none';
+        expEl.style.display = 'none';
+        container.innerHTML = '<div class="empty">일치하는 내역이 없습니다.</div>';
+        return;
+      }
+
+      let expSum = 0;
+      let incSum = 0;
+      matched.forEach(item => {
+        const amt = Number(item.amount || 0);
+        if (getEntryType(item) === 'income') incSum += amt;
+        else expSum += amt;
+      });
+
+      summaryBar.style.display = 'flex';
+      countEl.textContent = `검색 결과 ${matched.length}건`;
+
+      if (incSum > 0) {
+        incEl.style.display = 'inline';
+        incEl.textContent = `+${incSum.toLocaleString()}원`;
+      } else {
+        incEl.style.display = 'none';
+      }
+
+      if (expSum > 0) {
+        expEl.style.display = 'inline';
+        expEl.textContent = `-${expSum.toLocaleString()}원`;
+      } else {
+        expEl.style.display = 'none';
+      }
+
+      container.innerHTML = matched.map(item => {
+        const isInc = getEntryType(item) === 'income';
+        const sign = isInc ? '+' : '-';
+        const cls = isInc ? 'inc' : 'exp';
+        const fallbackLabel = isInc ? '수입 내역' : '내역 없음';
+        const grpLabel = getEntryAuthorLabel(item);
+        return `<div class="item" data-id="${escapeHtml(item.id)}">
+          <div>
+            <div class="item-main">[${escapeHtml(item.category)}] ${escapeHtml(item.merchant || fallbackLabel)}</div>
+            <div class="item-sub">${[item.date, grpLabel, isInc ? '' : (item.payment || '카드'), item.memo].filter(Boolean).map(escapeHtml).join(' · ')}</div>
+          </div>
+          <div class="item-amt ${cls}">${sign}${Number(item.amount || 0).toLocaleString()}원</div>
+        </div>`;
+      }).join('');
+
+      container.querySelectorAll('.item').forEach(el => {
+        el.onclick = () => {
+          const id = el.getAttribute('data-id');
+          closeSearchModal();
+          openEditModal(id, false, false, true);
+        };
+      });
+    }
+
+    function openSearchModal() {
+      const inputEl = document.getElementById('searchQueryInput');
+      inputEl.value = searchQuery;
+      renderSearchResults();
+      openModal('searchModal');
+      setTimeout(() => {
+        inputEl.focus();
+      }, 60);
+    }
+
+    function closeSearchModal() {
+      closeModal('searchModal');
     }
 
     /* ===== 알림 모달 (최근 등록 이력 5개) ===== */
@@ -2361,6 +2620,7 @@
     setupBackdropDismiss('editModal', closeEditModal);
     setupBackdropDismiss('closingModal', closeClosingModal);
     setupBackdropDismiss('settleModal', closeSettleModal);
+    setupBackdropDismiss('searchModal', closeSearchModal);
     setupBackdropDismiss('notiModal', closeNotiModal);
     setupBackdropDismiss('settingsModal', closeSettingsModal);
 
@@ -2402,8 +2662,28 @@
     document.getElementById('closeClosingBtn').onclick=closeClosingModal;
     document.getElementById('openSettleBtn').onclick=openSettleModal;
     document.getElementById('closeSettleBtn').onclick=closeSettleModal;
+    document.getElementById('openSearchBtn').onclick=openSearchModal;
+    document.getElementById('closeSearchBtn').onclick=closeSearchModal;
     document.getElementById('openNotiBtn').onclick=openNotiModal;
     document.getElementById('closeNotiBtn').onclick=closeNotiModal;
+
+    document.getElementById('searchQueryInput').addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderSearchResults();
+    });
+    document.getElementById('clearSearchBtn').onclick = () => {
+      searchQuery = '';
+      const inputEl = document.getElementById('searchQueryInput');
+      inputEl.value = '';
+      renderSearchResults();
+      inputEl.focus();
+    };
+    document.querySelectorAll('#searchFilterTabs .search-filter-tab').forEach(btn => {
+      btn.onclick = () => {
+        searchTypeFilter = btn.getAttribute('data-filter');
+        renderSearchResults();
+      };
+    });
 
     document.querySelectorAll('#statMainTabs .stat-main-tab').forEach(btn => {
       btn.onclick = () => switchStatTab(btn.getAttribute('data-stat-tab'));
