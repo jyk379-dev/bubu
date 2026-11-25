@@ -774,7 +774,7 @@
         </div>
       </div>
 
-      <!-- 1. 현금 저축 (총 수입, 생활비•고정비 지출, 추가 지출 3개 표시) -->
+      <!-- 1. 현금 저축 (총 수입, 지출 합계, 추가 지출 3개 표시) -->
       <div class="cash-saving-card">
         <div class="cash-saving-top">
           <div class="cash-saving-label" id="closingCashSavingLabel">현금 저축</div>
@@ -952,10 +952,10 @@
 
     // 통계 및 달력 요약에서 지출 합계를 계산할 고정 분류
     const FIXED_STAT_EXPENSE_GROUPS = ['생활비', '고정비'];
-    const DEFAULT_CLOSING_SAVING_GROUPS = ['생활비', '부동산•차'];
+    const DEFAULT_CLOSING_SAVING_GROUPS = ['생활비', '고정비', '부동산•차'];
 
     let expenses = [];
-    const defaultGroupCategories = ['생활비', '고정비', '부동산•차', '현금통장'];
+    const defaultGroupCategories = ['생활비', '고정비', '부동산•차', '현금통장', '추가지출'];
     let groupCategories = defaultGroupCategories.slice();
     let categories = ['식비','보험','카페','교통','회비','쇼핑','통신','생필품','관리비','구독서비스','마트','문화','건강'];
     const propertyCarCategories = ['부동산','자동차할부'];
@@ -1031,7 +1031,16 @@
       if (raw === '고정비') return '고정비';
       if (raw === '부동산•차') return '부동산•차';
       if (raw === '현금통장') return '현금통장';
+      if (raw === '추가지출' || raw === '추가 지출') return '추가지출';
       return raw;
+    }
+
+    function isExtraExpenseGroup(groupName) {
+      return normalizeGroup(groupName) === '추가지출';
+    }
+
+    function isCashAccountGroup(groupName) {
+      return normalizeGroup(groupName) === '현금통장';
     }
 
     function sanitizeGroupArray(rawList) {
@@ -1336,7 +1345,7 @@
       if (!forceAsk && cashBalance !== null && cashBalance > 0) {
         return cashBalance;
       }
-      const input = window.prompt('현금 잔액이 없습니다. 현금 잔액을 입력해 주세요 (원):', cashBalance !== null ? String(cashBalance) : '');
+      const input = window.prompt('현금 잔액을 입력해 주세요 (원):', cashBalance !== null ? String(cashBalance) : '');
       if (input === null) return cashBalance;
       const parsed = Number(String(input).replace(/,/g, '').trim());
       if (!Number.isFinite(parsed) || parsed < 0) {
@@ -2153,31 +2162,28 @@
       document.getElementById('closingTitle').textContent = `${viewYear}년 ${viewMonth + 1}월 월마감`;
       document.getElementById('closingPeriodLabel').textContent = `마감 기간: ${cycle.label} (25일~24일)`;
 
-      const availableGroups = buildGroupList(groupCategories);
-      const selectedSavingGroups = resolveClosingSavingGroups(availableGroups, closingSavingGroups);
-
       const monthItems = expenses.filter(e => e.date && e.date >= cycle.startStr && e.date <= cycle.endStr);
 
-      // 1. 현금 저축 계산: 총 수입 - 설정에서 선택된 지출 분류들의 지출 합계
+      // 1. 현금 저축 계산: 총 수입, 지출 합계(추가지출·현금통장 제외 전체 분류), 추가 지출(추가지출 분류)
       const totalIncome = monthItems
         .filter(e => getEntryType(e) === 'income')
         .reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
 
-      let livingFixedExp = 0;
-      let extraSelectedExp = 0;
+      let regularExpenseSum = 0;
+      let extraExpenseSum = 0;
 
       monthItems.forEach(item => {
         if (getEntryType(item) !== 'expense') return;
         const g = normalizeGroup(item.author);
         const amt = Number(item.amount || 0);
-        if (FIXED_STAT_EXPENSE_GROUPS.includes(g)) {
-          livingFixedExp += amt;
-        } else if (selectedSavingGroups.includes(g)) {
-          extraSelectedExp += amt;
+        if (isExtraExpenseGroup(g)) {
+          extraExpenseSum += amt;
+        } else if (!isCashAccountGroup(g)) {
+          regularExpenseSum += amt;
         }
       });
 
-      const deductedExpense = livingFixedExp + extraSelectedExp;
+      const deductedExpense = regularExpenseSum + extraExpenseSum;
       const cashSaving = totalIncome - deductedExpense;
 
       const savingLabelEl = document.getElementById('closingCashSavingLabel');
@@ -2199,13 +2205,13 @@
           `</div>` +
           `<div class="cs-chip-item">` +
             `<div class="cs-icon-wrap exp" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg></div>` +
-            `<div class="cs-sub-label">생활비•고정비 지출</div>` +
-            `<div class="cs-sub-val" style="color:var(--danger);">-${livingFixedExp.toLocaleString()}원</div>` +
+            `<div class="cs-sub-label">지출 합계</div>` +
+            `<div class="cs-sub-val" style="color:var(--danger);">-${regularExpenseSum.toLocaleString()}원</div>` +
           `</div>` +
           `<div class="cs-chip-item">` +
             `<div class="cs-icon-wrap exp" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg></div>` +
             `<div class="cs-sub-label">추가 지출</div>` +
-            `<div class="cs-sub-val" style="color:var(--danger);">-${extraSelectedExp.toLocaleString()}원</div>` +
+            `<div class="cs-sub-val" style="color:var(--danger);">-${extraExpenseSum.toLocaleString()}원</div>` +
           `</div>`;
       }
 
