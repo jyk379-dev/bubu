@@ -446,7 +446,7 @@
       margin-bottom:8px;
     }
     .cash-saving-label {
-      font-size:13px;
+      font-size:13.5px;
       font-weight:700;
       color:var(--text);
     }
@@ -457,24 +457,34 @@
     .cash-saving-val.plus { color:var(--income); }
     .cash-saving-val.minus { color:var(--danger); }
     .cash-saving-breakdown {
-      display:flex;
-      flex-wrap:wrap;
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
       gap:6px;
       padding-top:8px;
       border-top:1px dashed rgba(0,0,0,0.08);
       font-size:11.5px;
     }
     .cs-chip-item {
-      background:rgba(255,255,255,0.8);
+      background:rgba(255,255,255,0.85);
       border:1px solid rgba(0,0,0,0.06);
-      border-radius:8px;
-      padding:5px 8px;
-      min-width:86px;
-      flex:1 1 auto;
+      border-radius:9px;
+      padding:6px 6px;
       text-align:center;
+      min-width:0;
     }
-    .cs-sub-label { color:var(--sub); font-size:10.5px; margin-bottom:2px; }
-    .cs-sub-val { font-weight:700; color:var(--text); }
+    .cs-icon-wrap {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:22px;
+      height:22px;
+      border-radius:999px;
+      margin-bottom:2px;
+    }
+    .cs-icon-wrap.inc { background:var(--income-soft); color:var(--income); }
+    .cs-icon-wrap.exp { background:var(--danger-soft); color:var(--danger); }
+    .cs-sub-label { color:var(--sub); font-size:10.5px; font-weight:600; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cs-sub-val { font-weight:700; font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
     .verify-card {
       border:1px solid var(--line);
@@ -764,7 +774,7 @@
         </div>
       </div>
 
-      <!-- 1. 현금 저축 (총 수입 - 설정에서 선택한 지출 분류 합계) -->
+      <!-- 1. 현금 저축 (총 수입, 생활비•고정비 지출, 추가 지출 3개 표시) -->
       <div class="cash-saving-card">
         <div class="cash-saving-top">
           <div class="cash-saving-label" id="closingCashSavingLabel">현금 저축</div>
@@ -881,8 +891,8 @@
     <div class="modal-sheet">
       <div class="modal-title">설정</div>
       <div class="settings-tabs" role="tablist" aria-label="설정 항목">
-        <button type="button" class="settings-tab active" id="settingsCategoriesTab" role="tab" aria-selected="true" aria-controls="settingsCategoriesPanel" data-settings-tab="categories">카테고리 · 예산</button>
-        <button type="button" class="settings-tab" id="settingsPaymentTab" role="tab" aria-selected="false" aria-controls="settingsPaymentPanel" data-settings-tab="payment">결제수단</button>
+        <button type="button" class="settings-tab active" id="settingsCategoriesTab" role="tab" aria-selected="true" aria-controls="settingsCategoriesPanel" data-settings-tab="categories">카테고리</button>
+        <button type="button" class="settings-tab" id="settingsPaymentTab" role="tab" aria-selected="false" aria-controls="settingsPaymentPanel" data-settings-tab="payment">결제수단•예산</button>
       </div>
       <div class="settings-panels">
         <div id="settingsCategoriesPanel" class="settings-panel active" role="tabpanel" aria-labelledby="settingsCategoriesTab" aria-hidden="false" data-settings-panel="categories">
@@ -901,17 +911,6 @@
             <div class="tag-list" id="settingIncomeCategoryTags"></div>
             <div class="add-inline"><input type="text" id="newIncomeCategoryInput" placeholder="새 수입 카테고리 (예: 급여, 용돈)" /><button type="button" id="addIncomeCategoryTagBtn">추가</button></div>
           </div>
-          <div class="setting-sec">
-            <div class="setting-sec-title">월마감 현금 저축 차감 분류</div>
-            <div class="closing-group-chips" id="settingClosingSavingGroupChips"></div>
-          </div>
-          <div class="setting-sec">
-            <div class="setting-sec-title">예산 설정</div>
-            <div class="add-inline">
-              <input type="number" id="settingLivingBudgetInput" inputmode="numeric" placeholder="예산 (원)" min="0" step="1000" />
-              <button type="button" id="applyLivingBudgetBtn">예산 적용</button>
-            </div>
-          </div>
         </div>
         <div id="settingsPaymentPanel" class="settings-panel" role="tabpanel" aria-labelledby="settingsPaymentTab" aria-hidden="true" data-settings-panel="payment">
           <div class="setting-sec">
@@ -923,6 +922,17 @@
             <div class="setting-sec-title">현금 세부 수단</div>
             <div class="tag-list" id="settingCashTags"></div>
             <div class="add-inline"><input type="text" id="newCashInput" placeholder="예: 농협체크, 현금직접" /><button type="button" id="addCashTagBtn">추가</button></div>
+          </div>
+          <div class="setting-sec">
+            <div class="setting-sec-title">예산 설정</div>
+            <div class="add-inline">
+              <input type="number" id="settingLivingBudgetInput" inputmode="numeric" placeholder="예산 (원)" min="0" step="1000" />
+              <button type="button" id="applyLivingBudgetBtn">예산 적용</button>
+            </div>
+          </div>
+          <div class="setting-sec">
+            <div class="setting-sec-title">월마감 현금 저축 차감 분류</div>
+            <div class="closing-group-chips" id="settingClosingSavingGroupChips"></div>
           </div>
         </div>
       </div>
@@ -2136,7 +2146,7 @@
       closeModal('notiModal');
     }
 
-    /* ===== 월마감 모달 로직 (설정에서 선택한 지출 분류 반영) ===== */
+    /* ===== 월마감 모달 로직 ===== */
     function renderClosing() {
       const cycle = getCycleRange(viewYear, viewMonth);
       const monthKey = getMonthKey(viewYear, viewMonth);
@@ -2153,25 +2163,26 @@
         .filter(e => getEntryType(e) === 'income')
         .reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
 
-      const groupExpenseMap = new Map();
-      selectedSavingGroups.forEach(g => groupExpenseMap.set(g, 0));
+      let livingFixedExp = 0;
+      let extraSelectedExp = 0;
+
       monthItems.forEach(item => {
         if (getEntryType(item) !== 'expense') return;
         const g = normalizeGroup(item.author);
-        if (groupExpenseMap.has(g)) {
-          groupExpenseMap.set(g, groupExpenseMap.get(g) + Number(item.amount || 0));
+        const amt = Number(item.amount || 0);
+        if (FIXED_STAT_EXPENSE_GROUPS.includes(g)) {
+          livingFixedExp += amt;
+        } else if (selectedSavingGroups.includes(g)) {
+          extraSelectedExp += amt;
         }
       });
 
-      let selectedExpenseTotal = 0;
-      groupExpenseMap.forEach(val => { selectedExpenseTotal += val; });
+      const deductedExpense = livingFixedExp + extraSelectedExp;
+      const cashSaving = totalIncome - deductedExpense;
 
-      const cashSaving = totalIncome - selectedExpenseTotal;
       const savingLabelEl = document.getElementById('closingCashSavingLabel');
       if (savingLabelEl) {
-        savingLabelEl.textContent = selectedSavingGroups.length > 0
-          ? `현금 저축 (수입 - ${selectedSavingGroups.join('·')})`
-          : '현금 저축';
+        savingLabelEl.textContent = '현금 저축';
       }
 
       const savingEl = document.getElementById('closingCashSavingVal');
@@ -2180,13 +2191,22 @@
 
       const breakdownEl = document.getElementById('closingCashBreakdown');
       if (breakdownEl) {
-        const groupChipsHtml = selectedSavingGroups.map(g => {
-          const amt = groupExpenseMap.get(g) || 0;
-          return `<div class="cs-chip-item"><div class="cs-sub-label">${escapeHtml(g)} 지출</div><div class="cs-sub-val" style="color:var(--danger);">-${amt.toLocaleString()}원</div></div>`;
-        }).join('');
         breakdownEl.innerHTML =
-          `<div class="cs-chip-item"><div class="cs-sub-label">총 수입</div><div class="cs-sub-val" style="color:var(--income);">+${totalIncome.toLocaleString()}원</div></div>` +
-          groupChipsHtml;
+          `<div class="cs-chip-item">` +
+            `<div class="cs-icon-wrap inc" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg></div>` +
+            `<div class="cs-sub-label">총 수입</div>` +
+            `<div class="cs-sub-val" style="color:var(--income);">+${totalIncome.toLocaleString()}원</div>` +
+          `</div>` +
+          `<div class="cs-chip-item">` +
+            `<div class="cs-icon-wrap exp" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg></div>` +
+            `<div class="cs-sub-label">생활비•고정비 지출</div>` +
+            `<div class="cs-sub-val" style="color:var(--danger);">-${livingFixedExp.toLocaleString()}원</div>` +
+          `</div>` +
+          `<div class="cs-chip-item">` +
+            `<div class="cs-icon-wrap exp" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg></div>` +
+            `<div class="cs-sub-label">추가 지출</div>` +
+            `<div class="cs-sub-val" style="color:var(--danger);">-${extraSelectedExp.toLocaleString()}원</div>` +
+          `</div>`;
       }
 
       // 2. 카드별 명세서 검증 (분류: 생활비 내역과 비교, 국민카드·비씨카드는 하나로 통합)
