@@ -388,13 +388,14 @@
       color:#15803d;
     }
 
-    /* 통계 모달 스타일 */
-    .stat-main-tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; background:#f4f4f5; padding:4px; border-radius:12px; margin-bottom:12px; }
-    .stat-main-tab { border:none; background:transparent; padding:8px 6px; border-radius:9px; font-size:13px; font-weight:700; color:var(--sub); cursor:pointer; }
+    /* 통계 모달 스타일 (4개 탭) */
+    .stat-main-tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; background:#f4f4f5; padding:4px; border-radius:12px; margin-bottom:12px; }
+    .stat-main-tab { border:none; background:transparent; padding:8px 4px; border-radius:9px; font-size:12.5px; font-weight:700; color:var(--sub); cursor:pointer; white-space:nowrap; }
     .stat-main-tab.active { background:#fff; color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
 
     .summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
     .summary-grid.two-col { grid-template-columns:repeat(2,1fr); }
+    .summary-grid.one-col { grid-template-columns:1fr; }
     .sum-box { background:#f8fafc; border:1px solid var(--line); border-radius:12px; padding:10px 8px; text-align:center; }
     .sum-box-label { font-size:11px; color:var(--sub); font-weight:600; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sum-box-val { font-size:13.5px; font-weight:700; word-break:keep-all; }
@@ -796,12 +797,12 @@
     </div>
   </div>
 
-  <!-- 통계 모달: 분류 [생활비 | 부동산•차 | 현금통장] -->
+  <!-- 통계 모달: 분류 [생활비 | 고정비 | 부동산•차 | 현금통장] -->
   <div class="modal-backdrop" id="settleModal">
     <div class="modal-sheet">
       <div class="modal-header">
         <div>
-          <div class="modal-title" id="settleTitle">생활비·고정비 통계</div>
+          <div class="modal-title" id="settleTitle">생활비 통계</div>
           <div class="modal-sub" id="settlePeriodLabel"></div>
         </div>
         <div class="nav-group">
@@ -815,37 +816,47 @@
       </div>
 
       <div class="stat-main-tabs" id="statMainTabs">
-        <button type="button" class="stat-main-tab active" data-stat-tab="living">생활비·고정비</button>
+        <button type="button" class="stat-main-tab active" data-stat-tab="living">생활비</button>
+        <button type="button" class="stat-main-tab" data-stat-tab="fixed">고정비</button>
         <button type="button" class="stat-main-tab" data-stat-tab="property_car">부동산•차</button>
         <button type="button" class="stat-main-tab" data-stat-tab="cash">현금통장</button>
       </div>
 
-      <!-- 1. 예산 집계 탭 (지출 합계 대상 분류: 생활비, 고정비 고정) -->
+      <!-- 1. 생활비 탭 -->
       <div id="statTabLiving">
-        <div class="summary-grid">
+        <div class="summary-grid one-col">
           <div class="sum-box">
-            <div class="sum-box-label">예산</div>
-            <div class="sum-box-val budget" id="livingBudgetVal">0원</div>
-          </div>
-          <div class="sum-box">
-            <div class="sum-box-label">지출합계</div>
-            <div class="sum-box-val exp" id="livingSpentVal">0원</div>
-          </div>
-          <div class="sum-box">
-            <div class="sum-box-label">남은 예산</div>
-            <div class="sum-box-val" id="livingRemainVal">0원</div>
+            <div class="sum-box-label">생활비 지출합계</div>
+            <div class="sum-box-val exp" id="livingTabSpentVal">0원</div>
           </div>
         </div>
 
-        <div class="settle-tabs">
+        <div class="settle-tabs" data-breakdown-for="living">
           <button type="button" class="settle-tab active" data-mode="category">카테고리별</button>
           <button type="button" class="settle-tab" data-mode="payment">결제 수단별</button>
         </div>
 
-        <div id="settleStatContainer"></div>
+        <div id="livingStatContainer"></div>
       </div>
 
-      <!-- 2. 부동산•차 탭 -->
+      <!-- 2. 고정비 탭 -->
+      <div id="statTabFixed" style="display:none;">
+        <div class="summary-grid one-col">
+          <div class="sum-box">
+            <div class="sum-box-label">고정비 지출합계</div>
+            <div class="sum-box-val exp" id="fixedTabSpentVal">0원</div>
+          </div>
+        </div>
+
+        <div class="settle-tabs" data-breakdown-for="fixed">
+          <button type="button" class="settle-tab active" data-mode="category">카테고리별</button>
+          <button type="button" class="settle-tab" data-mode="payment">결제 수단별</button>
+        </div>
+
+        <div id="fixedStatContainer"></div>
+      </div>
+
+      <!-- 3. 부동산•차 탭 -->
       <div id="statTabPropertyCar" style="display:none;">
         <div class="summary-grid two-col">
           <div class="sum-box">
@@ -860,7 +871,7 @@
         <div id="propCarListContainer"></div>
       </div>
 
-      <!-- 3. 현금통장 탭 -->
+      <!-- 4. 현금통장 탭 -->
       <div id="statTabCash" style="display:none;">
         <div class="summary-grid">
           <div class="sum-box">
@@ -950,7 +961,7 @@
     const DATA_CACHE_KEY = 'couple_ledger_data_cache_v1';
     const CARD_STATEMENTS_KEY = 'couple_ledger_card_statements_v1';
 
-    // 통계 및 달력 요약에서 지출 합계를 계산할 고정 분류
+    // 달력 상단 요약에서 지출 합계를 계산할 고정 분류
     const FIXED_STAT_EXPENSE_GROUPS = ['생활비', '고정비'];
     const DEFAULT_CLOSING_SAVING_GROUPS = ['생활비', '고정비', '부동산•차'];
 
@@ -2399,10 +2410,107 @@
       closeModal('closingModal');
     }
 
-    /* ===== 통계 모달 로직 (생활비·고정비 고정 합산) ===== */
+    /* ===== 통계 모달 로직 (생활비 | 고정비 | 부동산•차 | 현금통장 4개 탭) ===== */
     function isCarItem(item) {
       const text = `${item.category || ''} ${item.merchant || ''} ${item.memo || ''}`;
       return /(차량|자동차|주유|하이패스|주차|정비|세차|보험)/.test(text) && !/(부동산|아파트|주택|전세|월세|관리비)/.test(text);
+    }
+
+    function syncBreakdownTabButtons() {
+      document.querySelectorAll('.settle-tabs .settle-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-mode') === settleMode);
+      });
+    }
+
+    function renderGroupBreakdown(groupName, monthItems, totalValEl, containerEl, emptyMsg) {
+      const filteredItems = monthItems.filter(e =>
+        normalizeGroup(e.author) === groupName && getEntryType(e) === 'expense'
+      );
+      const totalSpent = filteredItems.reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
+      totalValEl.textContent = `-${totalSpent.toLocaleString()}원`;
+
+      const map = new Map();
+      filteredItems.forEach(item => {
+        const rawKey = settleMode === 'category'
+          ? (item.category || '미분류')
+          : (item.payment || '카드');
+        if (!map.has(rawKey)) {
+          map.set(rawKey, { key: rawKey, total: 0, items: [] });
+        }
+        const entry = map.get(rawKey);
+        entry.total += Number(item.amount || 0);
+        entry.items.push(item);
+      });
+
+      const groups = Array.from(map.values()).sort((a, b) => b.total - a.total);
+      if (groups.length === 0) {
+        containerEl.innerHTML = `<div class="empty">${escapeHtml(emptyMsg)}</div>`;
+        return;
+      }
+
+      containerEl.innerHTML = `<div class="stat-list">${groups.map(g => {
+        const pct = totalSpent > 0 ? Math.round((g.total / totalSpent) * 100) : 0;
+        const isSelected = selectedSettleKey === g.key;
+        const sortedItems = isSelected
+          ? g.items.slice().sort((a, b) => b.date.localeCompare(a.date))
+          : [];
+        const detailMarkup = isSelected ? `
+          <div class="detail-box">
+            <div class="detail-box-header">
+              <div class="detail-box-title">${escapeHtml(g.key)} (${sortedItems.length}건)</div>
+              <button type="button" class="detail-close">접기 ✕</button>
+            </div>
+            <div>
+              ${sortedItems.map(item => `
+                <div class="item" data-id="${escapeHtml(item.id)}">
+                  <div>
+                    <div class="item-main">${escapeHtml(item.date.slice(5))} · ${escapeHtml(item.merchant || item.category)}</div>
+                    <div class="item-sub">${escapeHtml(normalizeGroup(item.author))} · ${settleMode === 'category' ? escapeHtml(item.payment || '') : escapeHtml(item.category)}${item.memo ? ' · ' + escapeHtml(item.memo) : ''}</div>
+                  </div>
+                  <div class="item-amt exp">-${Number(item.amount || 0).toLocaleString()}원</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : '';
+        return `<div class="stat-group">
+          <div class="stat-row ${isSelected ? 'active' : ''}" data-key="${escapeHtml(g.key)}">
+            <div class="stat-row-top">
+              <div class="stat-row-left">
+                <span class="badge-type exp">합산</span>
+                <span>${escapeHtml(g.key)}</span>
+                <span style="font-size:11px; color:var(--sub); font-weight:400;">(${g.items.length}건 · ${pct}%)</span>
+              </div>
+              <div style="color:var(--danger);">-${g.total.toLocaleString()}원</div>
+            </div>
+            <div class="stat-bar-bg">
+              <div class="stat-bar-fill exp" style="width:${Math.max(pct, 2)}%;"></div>
+            </div>
+          </div>
+          ${detailMarkup}
+        </div>`;
+      }).join('')}</div>`;
+
+      containerEl.querySelectorAll('.stat-row').forEach(row => {
+        row.onclick = () => {
+          const clickedKey = row.getAttribute('data-key');
+          selectedSettleKey = (selectedSettleKey === clickedKey) ? null : clickedKey;
+          renderSettlement();
+        };
+      });
+
+      containerEl.querySelectorAll('.detail-close').forEach(button => {
+        button.onclick = () => {
+          selectedSettleKey = null;
+          renderSettlement();
+        };
+      });
+      containerEl.querySelectorAll('.detail-box .item').forEach(el => {
+        el.onclick = () => {
+          closeSettleModal();
+          openEditModal(el.getAttribute('data-id'), true);
+        };
+      });
     }
 
     function switchStatTab(tab) {
@@ -2411,6 +2519,7 @@
         btn.classList.toggle('active', btn.getAttribute('data-stat-tab') === tab);
       });
       document.getElementById('statTabLiving').style.display = tab === 'living' ? 'block' : 'none';
+      document.getElementById('statTabFixed').style.display = tab === 'fixed' ? 'block' : 'none';
       document.getElementById('statTabPropertyCar').style.display = tab === 'property_car' ? 'block' : 'none';
       document.getElementById('statTabCash').style.display = tab === 'cash' ? 'block' : 'none';
 
@@ -2423,112 +2532,28 @@
     function renderSettlement() {
       const cycle = getCycleRange(viewYear, viewMonth);
       document.getElementById('settlePeriodLabel').textContent = `통계 기간: ${cycle.label} (25일~24일)`;
+      syncBreakdownTabButtons();
 
       const monthItems = expenses.filter(e => e.date && e.date >= cycle.startStr && e.date <= cycle.endStr);
 
       if (statMainTab === 'living') {
-        document.getElementById('settleTitle').textContent = `${viewYear}년 ${viewMonth+1}월 예산`;
-        const fixedExpItems = monthItems.filter(e =>
-          FIXED_STAT_EXPENSE_GROUPS.includes(normalizeGroup(e.author)) && getEntryType(e) === 'expense'
+        document.getElementById('settleTitle').textContent = `${viewYear}년 ${viewMonth+1}월 생활비`;
+        renderGroupBreakdown(
+          '생활비',
+          monthItems,
+          document.getElementById('livingTabSpentVal'),
+          document.getElementById('livingStatContainer'),
+          '해당 기간에 등록된 생활비 지출이 없습니다.'
         );
-        const fixedSpent = fixedExpItems.reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
-        const remaining = livingBudget - fixedSpent;
-
-        document.getElementById('livingBudgetVal').textContent = `${livingBudget.toLocaleString()}원`;
-        document.getElementById('livingSpentVal').textContent = `-${fixedSpent.toLocaleString()}원`;
-        const remEl = document.getElementById('livingRemainVal');
-        remEl.textContent = `${remaining >= 0 ? '' : '-'}${Math.abs(remaining).toLocaleString()}원`;
-        remEl.style.color = remaining < 0 ? 'var(--danger)' : 'var(--income)';
-
-        const map = new Map();
-        fixedExpItems.forEach(item => {
-          const rawKey = settleMode === 'category'
-            ? (item.category || '미분류')
-            : (item.payment || '카드');
-          if (!map.has(rawKey)) {
-            map.set(rawKey, { key: rawKey, total: 0, items: [] });
-          }
-          const entry = map.get(rawKey);
-          entry.total += Number(item.amount || 0);
-          entry.items.push(item);
-        });
-
-        const groups = Array.from(map.values()).sort((a, b) => b.total - a.total);
-        const statContainer = document.getElementById('settleStatContainer');
-
-        if (groups.length === 0) {
-          statContainer.innerHTML = '<div class="empty">해당 기간에 등록된 지출이 없습니다.</div>';
-          selectedSettleKey = null;
-          return;
-        }
-
-        if (selectedSettleKey && !map.has(selectedSettleKey)) {
-          selectedSettleKey = null;
-        }
-
-        statContainer.innerHTML = `<div class="stat-list">${groups.map(g => {
-          const pct = fixedSpent > 0 ? Math.round((g.total / fixedSpent) * 100) : 0;
-          const isSelected = selectedSettleKey === g.key;
-          const sortedItems = isSelected
-            ? g.items.slice().sort((a, b) => b.date.localeCompare(a.date))
-            : [];
-          const detailMarkup = isSelected ? `
-            <div class="detail-box">
-              <div class="detail-box-header">
-                <div class="detail-box-title">${escapeHtml(g.key)} (${sortedItems.length}건)</div>
-                <button type="button" class="detail-close">접기 ✕</button>
-              </div>
-              <div>
-                ${sortedItems.map(item => `
-                  <div class="item" data-id="${escapeHtml(item.id)}">
-                    <div>
-                      <div class="item-main">${escapeHtml(item.date.slice(5))} · ${escapeHtml(item.merchant || item.category)}</div>
-                      <div class="item-sub">${escapeHtml(normalizeGroup(item.author))} · ${settleMode === 'category' ? escapeHtml(item.payment || '') : escapeHtml(item.category)}${item.memo ? ' · ' + escapeHtml(item.memo) : ''}</div>
-                    </div>
-                    <div class="item-amt exp">-${Number(item.amount || 0).toLocaleString()}원</div>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : '';
-          return `<div class="stat-group">
-            <div class="stat-row ${isSelected ? 'active' : ''}" data-key="${escapeHtml(g.key)}">
-              <div class="stat-row-top">
-                <div class="stat-row-left">
-                  <span class="badge-type exp">합산</span>
-                  <span>${escapeHtml(g.key)}</span>
-                  <span style="font-size:11px; color:var(--sub); font-weight:400;">(${g.items.length}건 · ${pct}%)</span>
-                </div>
-                <div style="color:var(--danger);">-${g.total.toLocaleString()}원</div>
-              </div>
-              <div class="stat-bar-bg">
-                <div class="stat-bar-fill exp" style="width:${Math.max(pct, 2)}%;"></div>
-              </div>
-            </div>
-            ${detailMarkup}
-          </div>`;
-        }).join('')}</div>`;
-
-        statContainer.querySelectorAll('.stat-row').forEach(row => {
-          row.onclick = () => {
-            const clickedKey = row.getAttribute('data-key');
-            selectedSettleKey = (selectedSettleKey === clickedKey) ? null : clickedKey;
-            renderSettlement();
-          };
-        });
-
-        statContainer.querySelectorAll('.detail-close').forEach(button => {
-          button.onclick = () => {
-            selectedSettleKey = null;
-            renderSettlement();
-          };
-        });
-        statContainer.querySelectorAll('.detail-box .item').forEach(el => {
-          el.onclick = () => {
-            closeSettleModal();
-            openEditModal(el.getAttribute('data-id'), true);
-          };
-        });
+      } else if (statMainTab === 'fixed') {
+        document.getElementById('settleTitle').textContent = `${viewYear}년 ${viewMonth+1}월 고정비`;
+        renderGroupBreakdown(
+          '고정비',
+          monthItems,
+          document.getElementById('fixedTabSpentVal'),
+          document.getElementById('fixedStatContainer'),
+          '해당 기간에 등록된 고정비 지출이 없습니다.'
+        );
       } else if (statMainTab === 'property_car') {
         document.getElementById('settleTitle').textContent = `${viewYear}년 ${viewMonth+1}월 부동산•차`;
         const propCarExpItems = monthItems.filter(e => normalizeGroup(e.author) === '부동산•차' && getEntryType(e) === 'expense');
@@ -2995,9 +3020,8 @@
 
     document.querySelectorAll('.settle-tab').forEach(tab=>{
       tab.onclick=()=>{
-        document.querySelectorAll('.settle-tab').forEach(t=>t.classList.remove('active'));
-        tab.classList.add('active');
         settleMode = tab.getAttribute('data-mode');
+        syncBreakdownTabButtons();
         selectedSettleKey = null;
         renderSettlement();
       };
