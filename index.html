@@ -118,6 +118,9 @@
       font-weight:600;
       line-height:1.2;
       margin-bottom:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
     .cal-mini-val {
       font-size:11.5px;
@@ -349,9 +352,10 @@
       font-weight:700;
     }
 
-    /* 설정 모달 태그 */
+    /* 설정 모달 태그 및 복수 분류 칩 */
     .setting-sec { margin-bottom:14px; }
     .setting-sec-title { font-size:13px; font-weight:700; color:var(--sub); margin-bottom:6px; }
+    .setting-sec-sub { font-size:11.5px; color:var(--sub); margin-bottom:6px; }
     .settings-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; background:#f4f4f5; padding:4px; border-radius:12px; margin:12px 0; }
     .settings-tab { border:none; background:transparent; padding:9px 6px; border-radius:9px; font-size:13px; font-weight:700; color:var(--sub); cursor:pointer; }
     .settings-tab.active { background:#fff; color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
@@ -365,7 +369,25 @@
     .add-inline input,
     .add-inline select { padding:9px 11px; font-size:14px; }
     .add-inline button { width:auto; padding:0 14px; border-radius:10px; border:none; background:var(--text); color:#fff; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
-    .budget-config-row { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.25fr) auto; gap:6px; align-items:center; }
+    .budget-group-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+    .budget-group-chip {
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--sub);
+      border-radius:999px;
+      padding:6px 11px;
+      font-size:12.5px;
+      font-weight:700;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+    }
+    .budget-group-chip.active {
+      background:var(--accent-soft);
+      border-color:var(--accent);
+      color:var(--accent);
+    }
 
     /* 통계 모달 스타일 */
     .stat-main-tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; background:#f4f4f5; padding:4px; border-radius:12px; margin-bottom:12px; }
@@ -375,7 +397,7 @@
     .summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
     .summary-grid.two-col { grid-template-columns:repeat(2,1fr); }
     .sum-box { background:#f8fafc; border:1px solid var(--line); border-radius:12px; padding:10px 8px; text-align:center; }
-    .sum-box-label { font-size:11px; color:var(--sub); font-weight:600; margin-bottom:4px; }
+    .sum-box-label { font-size:11px; color:var(--sub); font-weight:600; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sum-box-val { font-size:13.5px; font-weight:700; word-break:keep-all; }
     .sum-box-val.inc { color:var(--income); }
     .sum-box-val.exp { color:var(--danger); }
@@ -390,9 +412,9 @@
     .stat-row { padding:10px 12px; border-top:1px solid #f0f0f3; cursor:pointer; background:#fff; transition:background 0.15s; }
     .stat-row:first-child { border-top:none; }
     .stat-row.active { background:var(--accent-soft); }
-    .stat-row-top { display:flex; justify-content:space-between; align-items:center; font-size:13.5px; font-weight:600; }
-    .stat-row-left { display:flex; align-items:center; gap:6px; }
-    .badge-type { font-size:10px; padding:2px 6px; border-radius:999px; font-weight:700; }
+    .stat-row-top { display:flex; justify-content:space-between; align-items:center; font-size:13.5px; font-weight:600; gap:6px; }
+    .stat-row-left { display:flex; align-items:center; gap:6px; min-width:0; }
+    .badge-type { font-size:10px; padding:2px 6px; border-radius:999px; font-weight:700; white-space:nowrap; }
     .badge-type.exp { background:var(--danger-soft); color:var(--danger); }
     .badge-type.inc { background:var(--income-soft); color:var(--income); }
     .stat-bar-bg { height:5px; background:#f1f5f9; border-radius:999px; margin-top:6px; overflow:hidden; }
@@ -580,7 +602,7 @@
         <!-- 연월과 달력 사이 미니 예산 요약 (터치 비활성화) -->
         <div class="cal-mini-summary" aria-hidden="true">
           <div class="cal-mini-box">
-            <div class="cal-mini-label" id="calLivingBudgetLabel">생활비 예산</div>
+            <div class="cal-mini-label" id="calLivingBudgetLabel">예산</div>
             <div class="cal-mini-val budget" id="calLivingBudgetVal">0원</div>
           </div>
           <div class="cal-mini-box">
@@ -757,7 +779,7 @@
         </div>
       </div>
 
-      <!-- 2. 카드별 명세서 금액 검증 (생활비 카드 내역 대조) -->
+      <!-- 2. 카드별 명세서 검증 (생활비 카드 내역 대조) -->
       <div class="closing-sec">
         <div class="closing-sec-head">
           <div class="closing-sec-title">카드 명세서 검증 (생활비 기준)</div>
@@ -794,11 +816,11 @@
         <button type="button" class="stat-main-tab" data-stat-tab="cash">현금통장</button>
       </div>
 
-      <!-- 1. 생활비/예산 탭 -->
+      <!-- 1. 예산 집계 탭 -->
       <div id="statTabLiving">
         <div class="summary-grid">
           <div class="sum-box">
-            <div class="sum-box-label" id="livingBudgetBoxLabel">생활비 예산</div>
+            <div class="sum-box-label" id="livingBudgetBoxLabel">예산</div>
             <div class="sum-box-val budget" id="livingBudgetVal">0원</div>
           </div>
           <div class="sum-box">
@@ -886,11 +908,12 @@
             <div class="add-inline"><input type="text" id="newIncomeCategoryInput" placeholder="새 수입 카테고리 (예: 급여, 용돈)" /><button type="button" id="addIncomeCategoryTagBtn">추가</button></div>
           </div>
           <div class="setting-sec">
-            <div class="setting-sec-title">예산 및 지출 합계 기준 분류</div>
-            <div class="budget-config-row">
-              <select id="settingBudgetExpenseGroupSelect" aria-label="남은 예산 계산용 지출 합계 분류"></select>
+            <div class="setting-sec-title">예산 및 지출 합계 대상 분류 (복수 선택 가능)</div>
+            <div class="setting-sec-sub">남은 예산 계산 시 합산할 분류를 하나 이상 선택하세요.</div>
+            <div class="budget-group-chips" id="settingBudgetGroupChips"></div>
+            <div class="add-inline">
               <input type="number" id="settingLivingBudgetInput" inputmode="numeric" placeholder="예산 (원)" min="0" step="1000" />
-              <button type="button" id="applyLivingBudgetBtn" style="height:38px; padding:0 12px; border-radius:10px; border:none; background:var(--text); color:#fff; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;">예산 적용</button>
+              <button type="button" id="applyLivingBudgetBtn">예산 적용</button>
             </div>
           </div>
         </div>
@@ -916,7 +939,8 @@
     const API_URL = 'https://script.google.com/macros/s/AKfycbyQ6su6NP0pMvRnvsy37fHlZbOs6VVdkgWzjLNRsB2u1ur6OLkjQcGed_cH5fbn6RYu2g/exec';
     const NOTI_SEEN_IDS_KEY = 'couple_ledger_noti_seen_ids_v2';
     const LIVING_BUDGET_KEY = 'couple_ledger_living_budget_v1';
-    const BUDGET_EXPENSE_GROUP_KEY = 'couple_ledger_budget_expense_group_v1';
+    const BUDGET_EXPENSE_GROUPS_KEY = 'couple_ledger_budget_expense_groups_v1';
+    const BUDGET_EXPENSE_GROUP_LEGACY_KEY = 'couple_ledger_budget_expense_group_v1';
     const CASH_BALANCE_KEY = 'couple_ledger_cash_balance_v1';
     const DATA_CACHE_KEY = 'couple_ledger_data_cache_v1';
     const CARD_STATEMENTS_KEY = 'couple_ledger_card_statements_v1';
@@ -931,7 +955,8 @@
     let paymentGroups = { '카드': ['우리카드'], '현금': ['농협체크'] };
 
     let livingBudget = loadLivingBudget();
-    let budgetExpenseGroup = loadBudgetExpenseGroup();
+    let budgetExpenseGroups = loadBudgetExpenseGroups();
+    let draftBudgetExpenseGroups = budgetExpenseGroups.slice();
     let cashBalance = loadCashBalance();
     let cardStatements = loadCardStatements();
     let expandedClosingCard = null;
@@ -999,42 +1024,91 @@
       return raw;
     }
 
-    function loadBudgetExpenseGroup() {
-      try {
-        const raw = localStorage.getItem(BUDGET_EXPENSE_GROUP_KEY);
-        const clean = String(raw || '').trim();
-        return clean ? normalizeGroup(clean) : '생활비';
-      } catch (e) {
-        return '생활비';
-      }
+    function sanitizeGroupSelectionArray(rawList) {
+      if (!Array.isArray(rawList)) return [];
+      const result = [];
+      rawList.forEach(val => {
+        const clean = String(val || '').trim();
+        if (!clean) return;
+        const normalized = normalizeGroup(clean) || clean;
+        if (!result.includes(normalized)) {
+          result.push(normalized);
+        }
+      });
+      return result;
     }
 
-    function saveBudgetExpenseGroup(val) {
-      const clean = normalizeGroup(val || '생활비');
-      budgetExpenseGroup = clean || '생활비';
+    function loadBudgetExpenseGroups() {
       try {
-        localStorage.setItem(BUDGET_EXPENSE_GROUP_KEY, budgetExpenseGroup);
+        const rawArr = localStorage.getItem(BUDGET_EXPENSE_GROUPS_KEY);
+        if (rawArr) {
+          const parsed = JSON.parse(rawArr);
+          const cleaned = sanitizeGroupSelectionArray(parsed);
+          if (cleaned.length > 0) return cleaned;
+        }
+        const rawSingle = localStorage.getItem(BUDGET_EXPENSE_GROUP_LEGACY_KEY);
+        if (rawSingle && String(rawSingle).trim()) {
+          const cleanedSingle = sanitizeGroupSelectionArray([rawSingle]);
+          if (cleanedSingle.length > 0) return cleanedSingle;
+        }
+      } catch (e) {}
+      return ['생활비'];
+    }
+
+    function saveBudgetExpenseGroups(list) {
+      const cleaned = sanitizeGroupSelectionArray(list);
+      budgetExpenseGroups = cleaned.length > 0 ? cleaned : ['생활비'];
+      try {
+        localStorage.setItem(BUDGET_EXPENSE_GROUPS_KEY, JSON.stringify(budgetExpenseGroups));
+        localStorage.setItem(BUDGET_EXPENSE_GROUP_LEGACY_KEY, budgetExpenseGroups[0]);
       } catch (e) {}
     }
 
-    function resolveBudgetExpenseGroup(availableGroups = buildGroupList(groupCategories)) {
-      const list = Array.isArray(availableGroups) && availableGroups.length > 0
+    function resolveBudgetExpenseGroups(sourceGroups = budgetExpenseGroups, availableGroups = buildGroupList(groupCategories)) {
+      const avail = Array.isArray(availableGroups) && availableGroups.length > 0
         ? availableGroups
         : buildGroupList(groupCategories);
-      const normalized = normalizeGroup(budgetExpenseGroup);
-      if (list.includes(normalized)) return normalized;
-      if (list.includes(budgetExpenseGroup)) return budgetExpenseGroup;
-      return list[0] || '생활비';
+      const cleaned = sanitizeGroupSelectionArray(sourceGroups).filter(g => avail.includes(g));
+      if (cleaned.length > 0) return cleaned;
+      if (avail.includes('생활비')) return ['생활비'];
+      return avail.length > 0 ? [avail[0]] : ['생활비'];
     }
 
-    function fillBudgetExpenseGroupSelect(selectEl, groupList = buildGroupList(draftGroups), currentVal = budgetExpenseGroup) {
-      if (!selectEl) return;
-      const list = buildGroupList(groupList);
-      const resolved = list.includes(currentVal) ? currentVal : resolveBudgetExpenseGroup(list);
-      selectEl.innerHTML = list.map(g =>
-        `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`
-      ).join('');
-      selectEl.value = resolved;
+    function formatBudgetGroupsLabel(groups = resolveBudgetExpenseGroups()) {
+      const list = resolveBudgetExpenseGroups(groups);
+      if (list.length === 1) return list[0];
+      return `${list[0]} 외 ${list.length - 1}개`;
+    }
+
+    function renderBudgetGroupChips(containerEl, selectedList, availableGroups) {
+      if (!containerEl) return;
+      const allGroups = buildGroupList(availableGroups);
+      const currentSelected = resolveBudgetExpenseGroups(selectedList, allGroups);
+      draftBudgetExpenseGroups = currentSelected.slice();
+
+      containerEl.innerHTML = allGroups.map(g => {
+        const isActive = currentSelected.includes(g);
+        return `<button type="button" class="budget-group-chip ${isActive ? 'active' : ''}" data-budget-group="${escapeHtml(g)}" aria-pressed="${String(isActive)}">${isActive ? '✓ ' : ''}${escapeHtml(g)}</button>`;
+      }).join('');
+
+      containerEl.querySelectorAll('.budget-group-chip').forEach(btn => {
+        btn.onclick = () => {
+          const g = btn.getAttribute('data-budget-group');
+          if (!g) return;
+          const next = new Set(draftBudgetExpenseGroups);
+          if (next.has(g)) {
+            if (next.size <= 1) {
+              setStatus('지출 합계 대상 분류는 최소 1개 이상 선택해야 합니다.', true, 2500);
+              return;
+            }
+            next.delete(g);
+          } else {
+            next.add(g);
+          }
+          draftBudgetExpenseGroups = allGroups.filter(item => next.has(item));
+          renderBudgetGroupChips(containerEl, draftBudgetExpenseGroups, allGroups);
+        };
+      });
     }
 
     /* ===== 월마감 카드명 정규화 (국민카드, 비씨카드는 (연근)/(귤이) 구분 없이 통합) ===== */
@@ -1152,7 +1226,15 @@
       try {
         const payload = {
           expenses,
-          settings: { groupCategories, categories, incomeCategories, paymentGroups, livingBudget, budgetExpenseGroup },
+          settings: {
+            groupCategories,
+            categories,
+            incomeCategories,
+            paymentGroups,
+            livingBudget,
+            budgetExpenseGroups,
+            budgetExpenseGroup: budgetExpenseGroups[0] || '생활비'
+          },
           updatedAt: Date.now()
         };
         localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(payload));
@@ -1188,7 +1270,7 @@
         }
         expenses = parsed.expenses.map(normalizeEntryAuthor);
         groupCategories = buildGroupList(groupCategories);
-        saveBudgetExpenseGroup(resolveBudgetExpenseGroup(groupCategories));
+        saveBudgetExpenseGroups(resolveBudgetExpenseGroups(budgetExpenseGroups, groupCategories));
         return true;
       } catch (e) {
         return false;
@@ -1237,8 +1319,10 @@
       if (Array.isArray(settings.groupCategories) && settings.groupCategories.length > 0) {
         groupCategories = buildGroupList(settings.groupCategories);
       }
-      if (typeof settings.budgetExpenseGroup === 'string' && settings.budgetExpenseGroup.trim() !== '') {
-        saveBudgetExpenseGroup(settings.budgetExpenseGroup.trim());
+      if (Array.isArray(settings.budgetExpenseGroups) && settings.budgetExpenseGroups.length > 0) {
+        saveBudgetExpenseGroups(settings.budgetExpenseGroups);
+      } else if (typeof settings.budgetExpenseGroup === 'string' && settings.budgetExpenseGroup.trim() !== '') {
+        saveBudgetExpenseGroups([settings.budgetExpenseGroup.trim()]);
       }
       if (settings.livingBudget === undefined || settings.livingBudget === null || settings.livingBudget === '') return;
       const value = Number(settings.livingBudget);
@@ -1248,10 +1332,18 @@
     }
 
     async function saveServerSettings() {
-      const activeGroup = resolveBudgetExpenseGroup(groupCategories);
+      const activeGroups = resolveBudgetExpenseGroups(budgetExpenseGroups, groupCategories);
       await apiPost({
         action: 'saveSettings',
-        settings: { groupCategories, categories, incomeCategories, paymentGroups, livingBudget, budgetExpenseGroup: activeGroup }
+        settings: {
+          groupCategories,
+          categories,
+          incomeCategories,
+          paymentGroups,
+          livingBudget,
+          budgetExpenseGroups: activeGroups,
+          budgetExpenseGroup: activeGroups[0] || '생활비'
+        }
       });
       const data = await apiGetInit();
       const savedBudget = data.settings && Number(data.settings.livingBudget);
@@ -1568,7 +1660,7 @@
         const serverExpenses = rows.map(normalizeEntryAuthor);
         expenses = [...serverExpenses, ...pendingTemps];
         groupCategories = buildGroupList(groupCategories);
-        saveBudgetExpenseGroup(resolveBudgetExpenseGroup(groupCategories));
+        saveBudgetExpenseGroups(resolveBudgetExpenseGroups(budgetExpenseGroups, groupCategories));
         renderSelectOptions();
 
         if (seenIdSet === null) {
@@ -1590,7 +1682,7 @@
       return { year: d.getFullYear(), monthIndex: d.getMonth() };
     }
 
-    /* ===== 메인 상단 예산 / 지출 합계 / 남은 예산 갱신 ===== */
+    /* ===== 메인 상단 예산 / 지출 합계 / 남은 예산 갱신 (복수 분류 합산) ===== */
     function renderCalendarLivingSummary(year = viewYear, monthIndex = viewMonth) {
       const budgetLabelEl = document.getElementById('calLivingBudgetLabel');
       const spentLabelEl = document.getElementById('calLivingSpentLabel');
@@ -1599,14 +1691,15 @@
       const remainEl = document.getElementById('calLivingRemainVal');
       if (!budgetEl || !spentEl || !remainEl) return;
 
-      const targetGroup = resolveBudgetExpenseGroup(groupCategories);
-      if (budgetLabelEl) budgetLabelEl.textContent = `${targetGroup} 예산`;
-      if (spentLabelEl) spentLabelEl.textContent = `지출 합계 (${targetGroup})`;
+      const targetGroups = resolveBudgetExpenseGroups(budgetExpenseGroups, groupCategories);
+      const shortLabel = formatBudgetGroupsLabel(targetGroups);
+      if (budgetLabelEl) budgetLabelEl.textContent = `${shortLabel} 예산`;
+      if (spentLabelEl) spentLabelEl.textContent = `지출 (${shortLabel})`;
 
       const cycle = getCycleRange(year, monthIndex);
       const monthItems = expenses.filter(e => e.date && e.date >= cycle.startStr && e.date <= cycle.endStr);
       const targetSpent = monthItems
-        .filter(e => normalizeGroup(e.author) === targetGroup && getEntryType(e) === 'expense')
+        .filter(e => targetGroups.includes(normalizeGroup(e.author)) && getEntryType(e) === 'expense')
         .reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
       const remaining = livingBudget - targetSpent;
 
@@ -2348,15 +2441,16 @@
       const monthItems = expenses.filter(e => e.date && e.date >= cycle.startStr && e.date <= cycle.endStr);
 
       if (statMainTab === 'living') {
-        const targetGroup = resolveBudgetExpenseGroup(groupCategories);
-        document.getElementById('settleTitle').textContent = `${viewYear}년 ${viewMonth+1}월 ${targetGroup} 예산`;
+        const targetGroups = resolveBudgetExpenseGroups(budgetExpenseGroups, groupCategories);
+        const groupsText = targetGroups.join(' · ');
+        document.getElementById('settleTitle').textContent = `${viewYear}년 ${viewMonth+1}월 예산 (${groupsText})`;
         const budgetBoxLabelEl = document.getElementById('livingBudgetBoxLabel');
         const spentBoxLabelEl = document.getElementById('livingSpentBoxLabel');
-        if (budgetBoxLabelEl) budgetBoxLabelEl.textContent = `${targetGroup} 예산`;
-        if (spentBoxLabelEl) spentBoxLabelEl.textContent = `지출 합계 (${targetGroup})`;
+        if (budgetBoxLabelEl) budgetBoxLabelEl.textContent = '설정 예산';
+        if (spentBoxLabelEl) spentBoxLabelEl.textContent = `지출 (${formatBudgetGroupsLabel(targetGroups)})`;
 
         const targetExpItems = monthItems.filter(e =>
-          normalizeGroup(e.author) === targetGroup && getEntryType(e) === 'expense'
+          targetGroups.includes(normalizeGroup(e.author)) && getEntryType(e) === 'expense'
         );
         const targetSpent = targetExpItems.reduce((acc, cur) => acc + Number(cur.amount || 0), 0);
         const remaining = livingBudget - targetSpent;
@@ -2384,7 +2478,7 @@
         const statContainer = document.getElementById('settleStatContainer');
 
         if (groups.length === 0) {
-          statContainer.innerHTML = `<div class="empty">해당 기간에 등록된 ${escapeHtml(targetGroup)} 지출이 없습니다.</div>`;
+          statContainer.innerHTML = `<div class="empty">해당 기간에 등록된(${escapeHtml(groupsText)}) 지출이 없습니다.</div>`;
           selectedSettleKey = null;
           return;
         }
@@ -2402,7 +2496,7 @@
           const detailMarkup = isSelected ? `
             <div class="detail-box">
               <div class="detail-box-header">
-                <div class="detail-box-title">${escapeHtml(targetGroup)} · ${escapeHtml(g.key)} (${sortedItems.length}건)</div>
+                <div class="detail-box-title">${escapeHtml(groupsText)} · ${escapeHtml(g.key)} (${sortedItems.length}건)</div>
                 <button type="button" class="detail-close">접기 ✕</button>
               </div>
               <div>
@@ -2422,7 +2516,7 @@
             <div class="stat-row ${isSelected ? 'active' : ''}" data-key="${escapeHtml(g.key)}">
               <div class="stat-row-top">
                 <div class="stat-row-left">
-                  <span class="badge-type exp">${escapeHtml(targetGroup)}</span>
+                  <span class="badge-type exp">합산</span>
                   <span>${escapeHtml(g.key)}</span>
                   <span style="font-size:11px; color:var(--sub); font-weight:400;">(${g.items.length}건 · ${pct}%)</span>
                 </div>
@@ -2546,9 +2640,6 @@
       const cardBox=document.getElementById('settingCardTags');
       const cashBox=document.getElementById('settingCashTags');
 
-      const budgetGroupSelect = document.getElementById('settingBudgetExpenseGroupSelect');
-      const currentSelectedGroup = budgetGroupSelect ? budgetGroupSelect.value : budgetExpenseGroup;
-
       grpBox.innerHTML=draftGroups.map((g,idx)=>{
         const isDefault = defaultGroupCategories.includes(g);
         const delBtn = isDefault ? '' : `<button type="button" class="tag-del" data-type="grp" data-idx="${idx}">×</button>`;
@@ -2559,13 +2650,22 @@
       cardBox.innerHTML=draftCardList.map((p,idx)=>`<span class="tag-pill">${escapeHtml(p)}<button type="button" class="tag-del" data-type="card" data-idx="${idx}">×</button></span>`).join('');
       cashBox.innerHTML=draftCashList.map((p,idx)=>`<span class="tag-pill">${escapeHtml(p)}<button type="button" class="tag-del" data-type="cash" data-idx="${idx}">×</button></span>`).join('');
 
-      fillBudgetExpenseGroupSelect(budgetGroupSelect, draftGroups, currentSelectedGroup);
+      renderBudgetGroupChips(
+        document.getElementById('settingBudgetGroupChips'),
+        draftBudgetExpenseGroups,
+        draftGroups
+      );
 
       document.querySelectorAll('.tag-del').forEach(btn=>{
         btn.onclick=()=>{
           const type=btn.getAttribute('data-type');
           const idx=Number(btn.getAttribute('data-idx'));
-          if(type==='grp'&&!defaultGroupCategories.includes(draftGroups[idx])) draftGroups.splice(idx,1);
+          if(type==='grp'&&!defaultGroupCategories.includes(draftGroups[idx])){
+            const removed = draftGroups[idx];
+            draftGroups.splice(idx,1);
+            draftBudgetExpenseGroups = draftBudgetExpenseGroups.filter(g => g !== removed);
+            draftBudgetExpenseGroups = resolveBudgetExpenseGroups(draftBudgetExpenseGroups, draftGroups);
+          }
           if(type==='cat'&&draftCategories.length>1) draftCategories.splice(idx,1);
           if(type==='incCat'&&draftIncomeCategories.length>1) draftIncomeCategories.splice(idx,1);
           if(type==='card'&&draftCardList.length>1) draftCardList.splice(idx,1);
@@ -2580,12 +2680,8 @@
       draftIncomeCategories=incomeCategories.slice();
       draftCardList=(paymentGroups['카드']||[]).slice();
       draftCashList=(paymentGroups['현금']||[]).slice();
+      draftBudgetExpenseGroups=resolveBudgetExpenseGroups(budgetExpenseGroups, draftGroups);
       document.getElementById('settingLivingBudgetInput').value = livingBudget > 0 ? String(livingBudget) : '';
-      fillBudgetExpenseGroupSelect(
-        document.getElementById('settingBudgetExpenseGroupSelect'),
-        draftGroups,
-        resolveBudgetExpenseGroup(draftGroups)
-      );
       renderSettingsTags();
       switchSettingsTab('categories');
       openModal('settingsModal');
@@ -2873,15 +2969,15 @@
         setStatus('예산은 0원 이상 입력해 주세요.', true, 3000);
         return;
       }
-      const selectedGroup = document.getElementById('settingBudgetExpenseGroupSelect').value;
+      const selectedGroups = resolveBudgetExpenseGroups(draftBudgetExpenseGroups, draftGroups);
       const previousBudget = livingBudget;
-      const previousGroup = budgetExpenseGroup;
+      const previousGroups = budgetExpenseGroups.slice();
 
       saveLivingBudget(val);
-      saveBudgetExpenseGroup(selectedGroup);
+      saveBudgetExpenseGroups(selectedGroups);
       saveLocalCache();
       renderCalendarLivingSummary();
-      setStatus('예산 및 집계 분류 저장 중...');
+      setStatus('예산 및 대상 분류 저장 중...');
       if (document.getElementById('settleModal').classList.contains('open')) {
         renderSettlement();
       }
@@ -2893,10 +2989,10 @@
         if (document.getElementById('settleModal').classList.contains('open')) {
           renderSettlement();
         }
-        setStatus(`${budgetExpenseGroup} 예산 ${livingBudget.toLocaleString()}원 저장됨`, false, 2500);
+        setStatus(`${budgetExpenseGroups.join('·')} 예산 ${livingBudget.toLocaleString()}원 저장됨`, false, 2500);
       }).catch(err => {
         saveLivingBudget(previousBudget);
-        saveBudgetExpenseGroup(previousGroup);
+        saveBudgetExpenseGroups(previousGroups);
         saveLocalCache();
         renderCalendarLivingSummary();
         if (document.getElementById('settleModal').classList.contains('open')) {
@@ -2960,9 +3056,8 @@
     /* ===== 낙관적 설정 저장 ===== */
     document.getElementById('saveSettingsBtn').onclick=()=>{
       const budgetInputVal = Number(document.getElementById('settingLivingBudgetInput').value);
-      const selectedGroup = document.getElementById('settingBudgetExpenseGroupSelect').value;
       const prevLivingBudget = livingBudget;
-      const prevBudgetGroup = budgetExpenseGroup;
+      const prevBudgetGroups = budgetExpenseGroups.slice();
       if (Number.isFinite(budgetInputVal) && budgetInputVal >= 0) {
         saveLivingBudget(budgetInputVal);
       }
@@ -2978,7 +3073,7 @@
       };
 
       groupCategories = buildGroupList(draftGroups);
-      saveBudgetExpenseGroup(resolveBudgetExpenseGroup(groupCategories.includes(selectedGroup) ? groupCategories : [...groupCategories, selectedGroup]));
+      saveBudgetExpenseGroups(resolveBudgetExpenseGroups(draftBudgetExpenseGroups, groupCategories));
       categories = draftCategories.slice();
       incomeCategories = draftIncomeCategories.slice();
       paymentGroups = nextGroups;
@@ -3008,7 +3103,7 @@
         incomeCategories = prevIncomeCategories;
         paymentGroups = prevPaymentGroups;
         saveLivingBudget(prevLivingBudget);
-        saveBudgetExpenseGroup(prevBudgetGroup);
+        saveBudgetExpenseGroups(prevBudgetGroups);
         renderSelectOptions();
         saveLocalCache();
         renderCalendarLivingSummary();
@@ -3251,7 +3346,7 @@
       const serverExpenses = rows.map(normalizeEntryAuthor);
       expenses = [...serverExpenses, ...pendingTemps];
       groupCategories = buildGroupList(groupCategories);
-      saveBudgetExpenseGroup(resolveBudgetExpenseGroup(groupCategories));
+      saveBudgetExpenseGroups(resolveBudgetExpenseGroups(budgetExpenseGroups, groupCategories));
       renderSelectOptions();
 
       if (seenIdSet === null) {
