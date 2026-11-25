@@ -294,7 +294,7 @@
       background:#f4f4f5;
       padding:4px;
       border-radius:12px;
-      margin-bottom:10px;
+      margin-bottom:8px;
     }
     .search-filter-tab {
       border:none;
@@ -310,6 +310,27 @@
       background:#fff;
       color:var(--text);
       box-shadow:0 1px 3px rgba(0,0,0,0.08);
+    }
+    .search-group-chips {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-bottom:10px;
+    }
+    .search-group-chip {
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--sub);
+      border-radius:999px;
+      padding:5px 10px;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .search-group-chip.active {
+      background:var(--accent-soft);
+      border-color:var(--accent);
+      color:var(--accent);
     }
     .search-summary-bar {
       display:flex;
@@ -611,13 +632,7 @@
         <button type="button" class="type-btn inc" data-type="income">수입</button>
       </div>
       <div class="form-grid">
-        <div>
-          <select id="author">
-            <option value="생활비">분류: 생활비</option>
-            <option value="부동산•차">분류: 부동산•차</option>
-            <option value="현금통장">분류: 현금통장</option>
-          </select>
-        </div>
+        <div><select id="author"></select></div>
         <div><select id="category"></select></div>
         <div><input type="text" id="merchant" placeholder="사용처 (예: 마트)" /></div>
         <div><input type="number" id="amount" placeholder="금액 (원)" inputmode="numeric" /></div>
@@ -641,13 +656,7 @@
       </div>
       <div class="form-grid">
         <div class="full"><input type="date" id="editDate" /></div>
-        <div class="full">
-          <select id="editAuthor">
-            <option value="생활비">분류: 생활비</option>
-            <option value="부동산•차">분류: 부동산•차</option>
-            <option value="현금통장">분류: 현금통장</option>
-          </select>
-        </div>
+        <div class="full"><select id="editAuthor"></select></div>
         <div><select id="editCategory"></select></div>
         <div><input type="number" id="editAmount" inputmode="numeric" placeholder="금액" /></div>
         <div class="payment-field"><select id="editPaymentGroup"><option value="카드">카드</option><option value="현금">현금</option></select></div>
@@ -681,6 +690,7 @@
         <button type="button" class="search-filter-tab" data-filter="expense">지출</button>
         <button type="button" class="search-filter-tab" data-filter="income">수입</button>
       </div>
+      <div class="search-group-chips" id="searchGroupChips"></div>
       <div class="search-summary-bar" id="searchSummaryBar" style="display:none;">
         <span id="searchResultCount">0건</span>
         <div class="search-summary-totals">
@@ -859,6 +869,11 @@
       <div class="settings-panels">
         <div id="settingsCategoriesPanel" class="settings-panel active" role="tabpanel" aria-labelledby="settingsCategoriesTab" aria-hidden="false" data-settings-panel="categories">
           <div class="setting-sec">
+            <div class="setting-sec-title">분류 항목 (생활비 외 추가 가능)</div>
+            <div class="tag-list" id="settingGroupTags"></div>
+            <div class="add-inline"><input type="text" id="newGroupInput" placeholder="새 분류 (예: 저축/투자, 경조사, 여행)" /><button type="button" id="addGroupTagBtn">추가</button></div>
+          </div>
+          <div class="setting-sec">
             <div class="setting-sec-title">지출 카테고리</div>
             <div class="tag-list" id="settingCategoryTags"></div>
             <div class="add-inline"><input type="text" id="newCategoryInput" placeholder="새 지출 카테고리" /><button type="button" id="addCategoryTagBtn">추가</button></div>
@@ -903,6 +918,8 @@
     const CARD_STATEMENTS_KEY = 'couple_ledger_card_statements_v1';
 
     let expenses = [];
+    const defaultGroupCategories = ['생활비', '부동산•차', '현금통장'];
+    let groupCategories = defaultGroupCategories.slice();
     let categories = ['식비','보험','카페','교통','회비','쇼핑','통신','생필품','관리비','구독서비스','마트','문화','건강'];
     const propertyCarCategories = ['부동산','자동차할부'];
     let incomeCategories = ['급여','상여/보너스','용돈','부수입','이자/배당','환급/캐시백','기타수입'];
@@ -914,6 +931,7 @@
     let cardStatements = loadCardStatements();
     let expandedClosingCard = null;
 
+    let draftGroups = [];
     let draftCategories = [];
     let draftIncomeCategories = [];
     let draftCardList = [];
@@ -929,6 +947,7 @@
 
     let searchQuery = '';
     let searchTypeFilter = 'all';
+    let searchGroupFilter = 'all';
 
     let seenIdSet = loadSeenIdSet();
     let currentUnreadSnapshot = new Set();
@@ -944,14 +963,35 @@
     let viewMonth = Number(todayStr.slice(5, 7)) - 1;
     let selectedDate = todayStr;
 
-    /* ===== 분류 정규화 ('생활비' | '부동산•차' | '현금통장') ===== */
+    function buildGroupList(sourceList = groupCategories) {
+      const merged = [];
+      defaultGroupCategories.forEach(g => {
+        if (!merged.includes(g)) merged.push(g);
+      });
+      if (Array.isArray(sourceList)) {
+        sourceList.forEach(g => {
+          const clean = String(g || '').trim();
+          if (clean && !merged.includes(clean)) merged.push(clean);
+        });
+      }
+      expenses.forEach(item => {
+        if (!item || getEntryType(item) === 'income') return;
+        const normalized = normalizeGroup(item.author);
+        if (normalized && !merged.includes(normalized)) merged.push(normalized);
+      });
+      return merged;
+    }
+
+    /* ===== 분류 정규화 (호환값은 '생활비', 지정된 새 분류는 그대로 유지) ===== */
     function normalizeGroup(val) {
-      if (val === '연근' || val === '귤이' || val === '나' || val === '배우자' || val === '생활비') {
+      const raw = String(val || '').trim();
+      if (!raw) return '생활비';
+      if (raw === '연근' || raw === '귤이' || raw === '나' || raw === '배우자' || raw === '생활비') {
         return '생활비';
       }
-      if (val === '부동산•차') return '부동산•차';
-      if (val === '현금통장') return '현금통장';
-      return '생활비';
+      if (raw === '부동산•차') return '부동산•차';
+      if (raw === '현금통장') return '현금통장';
+      return raw;
     }
 
     /* ===== 월마감 카드명 정규화 (국민카드, 비씨카드는 (연근)/(귤이) 구분 없이 통합) ===== */
@@ -1069,7 +1109,7 @@
       try {
         const payload = {
           expenses,
-          settings: { categories, incomeCategories, paymentGroups, livingBudget },
+          settings: { groupCategories, categories, incomeCategories, paymentGroups, livingBudget },
           updatedAt: Date.now()
         };
         localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(payload));
@@ -1084,6 +1124,9 @@
         if (!parsed || !Array.isArray(parsed.expenses)) return false;
 
         if (parsed.settings) {
+          if (Array.isArray(parsed.settings.groupCategories) && parsed.settings.groupCategories.length > 0) {
+            groupCategories = buildGroupList(parsed.settings.groupCategories);
+          }
           if (Array.isArray(parsed.settings.categories) && parsed.settings.categories.length > 0) {
             categories = parsed.settings.categories;
           }
@@ -1101,6 +1144,7 @@
           }
         }
         expenses = parsed.expenses.map(normalizeEntryAuthor);
+        groupCategories = buildGroupList(groupCategories);
         return true;
       } catch (e) {
         return false;
@@ -1117,6 +1161,7 @@
         renderClosing();
       }
       if (document.getElementById('searchModal').classList.contains('open')) {
+        renderSearchGroupChips();
         renderSearchResults();
       }
       if (document.getElementById('notiModal').classList.contains('open')) {
@@ -1144,7 +1189,11 @@
 
     function applySavedSettings(saved) {
       const settings = saved && saved.settings ? saved.settings : saved;
-      if (!settings || settings.livingBudget === undefined || settings.livingBudget === null || settings.livingBudget === '') return;
+      if (!settings) return;
+      if (Array.isArray(settings.groupCategories) && settings.groupCategories.length > 0) {
+        groupCategories = buildGroupList(settings.groupCategories);
+      }
+      if (settings.livingBudget === undefined || settings.livingBudget === null || settings.livingBudget === '') return;
       const value = Number(settings.livingBudget);
       if (Number.isFinite(value) && value >= 0) {
         saveLivingBudget(value);
@@ -1154,7 +1203,7 @@
     async function saveServerSettings() {
       await apiPost({
         action: 'saveSettings',
-        settings: { categories, incomeCategories, paymentGroups, livingBudget }
+        settings: { groupCategories, categories, incomeCategories, paymentGroups, livingBudget }
       });
       const data = await apiGetInit();
       const savedBudget = data.settings && Number(data.settings.livingBudget);
@@ -1363,18 +1412,28 @@
         return;
       }
 
-      const groups = [
-        ['생활비', '분류: 생활비'],
-        ['부동산•차', '분류: 부동산•차'],
-        ['현금통장', '분류: 현금통장']
-      ];
-      selectEl.innerHTML = groups.map(([value, label]) =>
-        `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`
+      const groups = buildGroupList(groupCategories);
+      const normalizedCurrent = normalizeGroup(currentVal);
+      if (normalizedCurrent && !groups.includes(normalizedCurrent)) {
+        groups.push(normalizedCurrent);
+      }
+      selectEl.innerHTML = groups.map(value =>
+        `<option value="${escapeHtml(value)}">분류: ${escapeHtml(value)}</option>`
       ).join('');
-      selectEl.value = normalizeGroup(currentVal);
+      selectEl.value = groups.includes(normalizedCurrent) ? normalizedCurrent : groups[0];
     }
 
     function renderSelectOptions() {
+      fillAuthorSelect(
+        document.getElementById('author'),
+        addEntryType,
+        document.getElementById('author').value
+      );
+      fillAuthorSelect(
+        document.getElementById('editAuthor'),
+        editEntryType,
+        document.getElementById('editAuthor').value
+      );
       fillCategorySelect(
         document.getElementById('category'),
         addEntryType,
@@ -1387,8 +1446,8 @@
         document.getElementById('editCategory').value,
         document.getElementById('editAuthor').value
       );
-      fillSubSelect(document.getElementById('paymentSub'), document.getElementById('paymentGroup').value||'카드', '');
-      fillSubSelect(document.getElementById('editPaymentSub'), document.getElementById('editPaymentGroup').value||'카드', '');
+      fillSubSelect(document.getElementById('paymentSub'), document.getElementById('paymentGroup').value||'카드', document.getElementById('paymentSub').value);
+      fillSubSelect(document.getElementById('editPaymentSub'), document.getElementById('editPaymentGroup').value||'카드', document.getElementById('editPaymentSub').value);
     }
 
     async function apiGetInit() {
@@ -1444,6 +1503,7 @@
       return apiGetInit().then(data => {
         const rows = Array.isArray(data.expenses) ? data.expenses : [];
         if (data.settings) {
+          if (Array.isArray(data.settings.groupCategories) && data.settings.groupCategories.length > 0) groupCategories = buildGroupList(data.settings.groupCategories);
           if (Array.isArray(data.settings.categories) && data.settings.categories.length > 0) categories = data.settings.categories;
           if (Array.isArray(data.settings.incomeCategories) && data.settings.incomeCategories.length > 0) incomeCategories = data.settings.incomeCategories;
           applySavedSettings(data.settings);
@@ -1459,6 +1519,8 @@
         const pendingTemps = expenses.filter(e => String(e.id).startsWith('temp_'));
         const serverExpenses = rows.map(normalizeEntryAuthor);
         expenses = [...serverExpenses, ...pendingTemps];
+        groupCategories = buildGroupList(groupCategories);
+        renderSelectOptions();
 
         if (seenIdSet === null) {
           markAllCurrentAsRead();
@@ -1740,7 +1802,8 @@
         viewYear,
         viewMonth,
         searchQuery,
-        searchTypeFilter
+        searchTypeFilter,
+        searchGroupFilter
       } : null;
       const tType = getEntryType(target);
       const parsedPay = parsePaymentString(target.payment);
@@ -1772,7 +1835,9 @@
       } else if (returnContext.mode === 'search') {
         searchQuery = returnContext.searchQuery;
         searchTypeFilter = returnContext.searchTypeFilter;
+        searchGroupFilter = returnContext.searchGroupFilter || 'all';
         openModal('searchModal');
+        renderSearchGroupChips();
         renderSearchResults();
       } else {
         statMainTab = returnContext.statMainTab;
@@ -1784,6 +1849,29 @@
     }
 
     /* ===== 검색 모달 로직 ===== */
+    function renderSearchGroupChips() {
+      const chipContainer = document.getElementById('searchGroupChips');
+      if (!chipContainer) return;
+      const allGroups = buildGroupList(groupCategories);
+      if (searchGroupFilter !== 'all' && !allGroups.includes(searchGroupFilter)) {
+        searchGroupFilter = 'all';
+      }
+      const chipItems = ['all', ...allGroups];
+      chipContainer.innerHTML = chipItems.map(g => {
+        const label = g === 'all' ? '분류 전체' : g;
+        const active = searchGroupFilter === g ? 'active' : '';
+        return `<button type="button" class="search-group-chip ${active}" data-group="${escapeHtml(g)}">${escapeHtml(label)}</button>`;
+      }).join('');
+
+      chipContainer.querySelectorAll('.search-group-chip').forEach(btn => {
+        btn.onclick = () => {
+          searchGroupFilter = btn.getAttribute('data-group') || 'all';
+          renderSearchGroupChips();
+          renderSearchResults();
+        };
+      });
+    }
+
     function renderSearchResults() {
       const container = document.getElementById('searchResultContainer');
       const summaryBar = document.getElementById('searchSummaryBar');
@@ -1799,9 +1887,10 @@
         btn.classList.toggle('active', btn.getAttribute('data-filter') === searchTypeFilter);
       });
 
-      if (!trimmed && searchTypeFilter === 'all') {
+      const hasGroupFilter = searchGroupFilter !== 'all';
+      if (!trimmed && searchTypeFilter === 'all' && !hasGroupFilter) {
         summaryBar.style.display = 'none';
-        container.innerHTML = '<div class="empty">사용처, 카테고리, 메모, 결제수단 또는 날짜를 입력하세요.</div>';
+        container.innerHTML = '<div class="empty">사용처, 카테고리, 메모, 결제수단, 날짜 또는 분류를 선택하세요.</div>';
         return;
       }
 
@@ -1811,6 +1900,10 @@
         .filter(item => {
           const itemType = getEntryType(item);
           if (searchTypeFilter !== 'all' && itemType !== searchTypeFilter) return false;
+          if (hasGroupFilter) {
+            if (itemType === 'income') return false;
+            if (normalizeGroup(item.author) !== searchGroupFilter) return false;
+          }
           if (tokens.length === 0) return true;
 
           const haystack = [
@@ -1889,6 +1982,7 @@
     function openSearchModal() {
       const inputEl = document.getElementById('searchQueryInput');
       inputEl.value = searchQuery;
+      renderSearchGroupChips();
       renderSearchResults();
       openModal('searchModal');
       setTimeout(() => {
@@ -2385,11 +2479,17 @@
 
     /* ===== 설정 모달 로직 ===== */
     function renderSettingsTags() {
+      const grpBox=document.getElementById('settingGroupTags');
       const catBox=document.getElementById('settingCategoryTags');
       const incCatBox=document.getElementById('settingIncomeCategoryTags');
       const cardBox=document.getElementById('settingCardTags');
       const cashBox=document.getElementById('settingCashTags');
 
+      grpBox.innerHTML=draftGroups.map((g,idx)=>{
+        const isDefault = defaultGroupCategories.includes(g);
+        const delBtn = isDefault ? '' : `<button type="button" class="tag-del" data-type="grp" data-idx="${idx}">×</button>`;
+        return `<span class="tag-pill">${escapeHtml(g)}${delBtn}</span>`;
+      }).join('');
       catBox.innerHTML=draftCategories.map((c,idx)=>`<span class="tag-pill">${escapeHtml(c)}<button type="button" class="tag-del" data-type="cat" data-idx="${idx}">×</button></span>`).join('');
       incCatBox.innerHTML=draftIncomeCategories.map((c,idx)=>`<span class="tag-pill">${escapeHtml(c)}<button type="button" class="tag-del" data-type="incCat" data-idx="${idx}">×</button></span>`).join('');
       cardBox.innerHTML=draftCardList.map((p,idx)=>`<span class="tag-pill">${escapeHtml(p)}<button type="button" class="tag-del" data-type="card" data-idx="${idx}">×</button></span>`).join('');
@@ -2399,6 +2499,7 @@
         btn.onclick=()=>{
           const type=btn.getAttribute('data-type');
           const idx=Number(btn.getAttribute('data-idx'));
+          if(type==='grp'&&!defaultGroupCategories.includes(draftGroups[idx])) draftGroups.splice(idx,1);
           if(type==='cat'&&draftCategories.length>1) draftCategories.splice(idx,1);
           if(type==='incCat'&&draftIncomeCategories.length>1) draftIncomeCategories.splice(idx,1);
           if(type==='card'&&draftCardList.length>1) draftCardList.splice(idx,1);
@@ -2408,6 +2509,7 @@
       });
     }
     function openSettingsModal() {
+      draftGroups=buildGroupList(groupCategories);
       draftCategories=categories.slice();
       draftIncomeCategories=incomeCategories.slice();
       draftCardList=(paymentGroups['카드']||[]).slice();
@@ -2765,6 +2867,15 @@
       renderClosing();
     };
 
+    document.getElementById('addGroupTagBtn').onclick=()=>{
+      const inp=document.getElementById('newGroupInput');
+      const val=inp.value.trim();
+      if(val && !draftGroups.includes(val)){
+        draftGroups.push(val);
+        renderSettingsTags();
+      }
+      inp.value='';
+    };
     document.getElementById('addCategoryTagBtn').onclick=()=>{const inp=document.getElementById('newCategoryInput'),val=inp.value.trim();if(val&&!draftCategories.includes(val)){draftCategories.push(val);renderSettingsTags();}inp.value='';};
     document.getElementById('addIncomeCategoryTagBtn').onclick=()=>{const inp=document.getElementById('newIncomeCategoryInput'),val=inp.value.trim();if(val&&!draftIncomeCategories.includes(val)){draftIncomeCategories.push(val);renderSettingsTags();}inp.value='';};
     document.getElementById('addCardTagBtn').onclick=()=>{const inp=document.getElementById('newCardInput'),val=inp.value.trim();if(val&&!draftCardList.includes(val)){draftCardList.push(val);renderSettingsTags();}inp.value='';};
@@ -2778,6 +2889,7 @@
         saveLivingBudget(budgetInputVal);
       }
 
+      const prevGroups = groupCategories.slice();
       const prevCategories = categories.slice();
       const prevIncomeCategories = incomeCategories.slice();
       const prevPaymentGroups = JSON.parse(JSON.stringify(paymentGroups));
@@ -2787,6 +2899,7 @@
         '현금': draftCashList.length > 0 ? draftCashList.slice() : ['농협체크']
       };
 
+      groupCategories = buildGroupList(draftGroups);
       categories = draftCategories.slice();
       incomeCategories = draftIncomeCategories.slice();
       paymentGroups = nextGroups;
@@ -2794,17 +2907,13 @@
       renderSelectOptions();
       renderCalendarLivingSummary();
       saveLocalCache();
-      if (document.getElementById('settleModal').classList.contains('open')) {
-        renderSettlement();
-      }
-      if (document.getElementById('closingModal').classList.contains('open')) {
-        renderClosing();
-      }
+      refreshAllOpenViews();
       setStatus('');
 
       const token = startSyncToken('settings');
       saveServerSettings().then(saved => {
         if (saved) {
+          groupCategories = buildGroupList(saved.groupCategories || groupCategories);
           categories = saved.categories || categories;
           incomeCategories = saved.incomeCategories || incomeCategories;
           paymentGroups = saved.paymentGroups || paymentGroups;
@@ -2812,8 +2921,10 @@
           renderSelectOptions();
           saveLocalCache();
           renderCalendarLivingSummary();
+          refreshAllOpenViews();
         }
       }).catch(err => {
+        groupCategories = prevGroups;
         categories = prevCategories;
         incomeCategories = prevIncomeCategories;
         paymentGroups = prevPaymentGroups;
@@ -2821,6 +2932,7 @@
         renderSelectOptions();
         saveLocalCache();
         renderCalendarLivingSummary();
+        refreshAllOpenViews();
         setStatus('설정 동기화 실패 (이전 설정으로 복구됨): ' + err.message, true, 4000);
       }).finally(() => {
         finishSyncToken(token);
@@ -2862,6 +2974,9 @@
       };
 
       expenses.push(optimisticItem);
+      if (currentType !== 'income') {
+        groupCategories = buildGroupList(groupCategories);
+      }
       markItemIdAsSeen(tempId);
       saveLocalCache();
 
@@ -2950,6 +3065,9 @@
       };
 
       expenses = expenses.map(e => String(e.id) === id ? optimisticNormalized : e);
+      if (currentType !== 'income') {
+        groupCategories = buildGroupList(groupCategories);
+      }
       if (!editReturnContext) {
         selectedDate = optimisticNormalized.date;
         viewYear = Number(optimisticNormalized.date.slice(0, 4));
@@ -3036,6 +3154,7 @@
     apiGetInit().then(data=>{
       const rows=Array.isArray(data.expenses)?data.expenses:[];
       if(data.settings){
+        if(Array.isArray(data.settings.groupCategories)&&data.settings.groupCategories.length>0) groupCategories=buildGroupList(data.settings.groupCategories);
         if(Array.isArray(data.settings.categories)&&data.settings.categories.length>0) categories=data.settings.categories;
         if(Array.isArray(data.settings.incomeCategories)&&data.settings.incomeCategories.length>0) incomeCategories=data.settings.incomeCategories;
         applySavedSettings(data.settings);
@@ -3051,6 +3170,8 @@
       const pendingTemps = expenses.filter(e => String(e.id).startsWith('temp_'));
       const serverExpenses = rows.map(normalizeEntryAuthor);
       expenses = [...serverExpenses, ...pendingTemps];
+      groupCategories = buildGroupList(groupCategories);
+      renderSelectOptions();
 
       if (seenIdSet === null) {
         markAllCurrentAsRead();
