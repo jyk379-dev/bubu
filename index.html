@@ -221,7 +221,7 @@
       border:1px solid var(--line);
       border-radius:12px;
       box-shadow:0 10px 24px rgba(0,0,0,0.12);
-      max-height:184px;
+      max-height:144px;
       overflow-y:auto;
       z-index:60;
       display:none;
@@ -1075,7 +1075,7 @@
       return merged;
     }
 
-    /* ===== 기존 데이터 기반 사용처 자동완성 ===== */
+    /* ===== 기존 데이터 기반 사용처 자동완성 (최대 3개) ===== */
     function getMerchantSuggestions(queryText, entryType) {
       const q = String(queryText || '').trim().toLowerCase();
       const map = new Map();
@@ -1105,7 +1105,7 @@
 
       return Array.from(map.values())
         .sort((a, b) => (b.count - a.count) || (b.latestOrder - a.latestOrder))
-        .slice(0, 8);
+        .slice(0, 3);
     }
 
     function renderMerchantAutocomplete(inputEl, listEl, getTypeFn, onSelectCb) {
