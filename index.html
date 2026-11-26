@@ -210,6 +210,43 @@
     .form-grid input,.form-grid select { min-width:0; }
     .form-grid .full { grid-column:1 / -1; }
     input,select { width:100%; padding:11px; border:1px solid var(--line); border-radius:10px; font-size:15px; background:#fff; color:var(--text); }
+
+    /* 사용처 자동완성 드롭다운 */
+    .merchant-ac-wrap { position:relative; }
+    .merchant-ac-list {
+      position:absolute;
+      left:0; right:0;
+      top:calc(100% + 4px);
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:12px;
+      box-shadow:0 10px 24px rgba(0,0,0,0.12);
+      max-height:184px;
+      overflow-y:auto;
+      z-index:60;
+      display:none;
+    }
+    .merchant-ac-list.open { display:block; }
+    .merchant-ac-item {
+      width:100%;
+      border:none;
+      background:#fff;
+      padding:9px 12px;
+      text-align:left;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      cursor:pointer;
+      border-top:1px solid #f4f4f5;
+      color:var(--text);
+    }
+    .merchant-ac-item:first-child { border-top:none; }
+    .merchant-ac-item:active,
+    .merchant-ac-item:hover { background:var(--accent-soft); }
+    .merchant-ac-name { font-size:13.5px; font-weight:700; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .merchant-ac-meta { font-size:11px; color:var(--sub); white-space:nowrap; flex-shrink:0; }
+
     .btn { width:100%; padding:12px; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; }
     .btn-primary { background:var(--accent); color:#fff; margin-top:10px; }
     .btn-income { background:var(--income); color:#fff; margin-top:10px; }
@@ -676,7 +713,10 @@
       <div class="form-grid">
         <div><select id="author"></select></div>
         <div><select id="category"></select></div>
-        <div><input type="text" id="merchant" placeholder="사용처 (예: 마트)" /></div>
+        <div class="merchant-ac-wrap">
+          <input type="text" id="merchant" placeholder="사용처 (예: 마트)" autocomplete="off" />
+          <div class="merchant-ac-list" id="merchantAcList"></div>
+        </div>
         <div><input type="number" id="amount" placeholder="금액 (원)" inputmode="numeric" /></div>
         <div class="payment-field"><select id="paymentGroup"><option value="카드">결제: 카드</option><option value="현금">결제: 현금</option></select></div>
         <div class="payment-field"><select id="paymentSub"></select></div>
@@ -703,7 +743,10 @@
         <div><input type="number" id="editAmount" inputmode="numeric" placeholder="금액" /></div>
         <div class="payment-field"><select id="editPaymentGroup"><option value="카드">카드</option><option value="현금">현금</option></select></div>
         <div class="payment-field"><select id="editPaymentSub"></select></div>
-        <div class="full"><input type="text" id="editMerchant" placeholder="사용처 / 입금처" /></div>
+        <div class="full merchant-ac-wrap">
+          <input type="text" id="editMerchant" placeholder="사용처 / 입금처" autocomplete="off" />
+          <div class="merchant-ac-list" id="editMerchantAcList"></div>
+        </div>
         <div class="full"><input type="text" id="editMemo" placeholder="메모" /></div>
       </div>
       <div class="modal-actions">
@@ -1030,6 +1073,117 @@
         if (normalized && !merged.includes(normalized)) merged.push(normalized);
       });
       return merged;
+    }
+
+    /* ===== 기존 데이터 기반 사용처 자동완성 ===== */
+    function getMerchantSuggestions(queryText, entryType) {
+      const q = String(queryText || '').trim().toLowerCase();
+      const map = new Map();
+
+      for (let i = expenses.length - 1; i >= 0; i--) {
+        const item = expenses[i];
+        if (!item) continue;
+        if (entryType && getEntryType(item) !== entryType) continue;
+        const name = String(item.merchant || '').trim();
+        if (!name) continue;
+        if (q && !name.toLowerCase().includes(q)) continue;
+
+        const key = name.toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, {
+            name,
+            count: 1,
+            latestOrder: i,
+            category: item.category || '',
+            payment: item.payment || ''
+          });
+        } else {
+          const cur = map.get(key);
+          cur.count += 1;
+        }
+      }
+
+      return Array.from(map.values())
+        .sort((a, b) => (b.count - a.count) || (b.latestOrder - a.latestOrder))
+        .slice(0, 8);
+    }
+
+    function renderMerchantAutocomplete(inputEl, listEl, getTypeFn, onSelectCb) {
+      if (!inputEl || !listEl) return;
+      const suggestions = getMerchantSuggestions(inputEl.value, getTypeFn());
+      if (suggestions.length === 0) {
+        listEl.innerHTML = '';
+        listEl.classList.remove('open');
+        return;
+      }
+
+      listEl.innerHTML = suggestions.map(s => {
+        const meta = [s.category, s.count > 1 ? `${s.count}회` : ''].filter(Boolean).join(' · ');
+        return `<button type="button" class="merchant-ac-item" data-name="${escapeHtml(s.name)}" data-category="${escapeHtml(s.category)}" data-payment="${escapeHtml(s.payment)}">
+          <span class="merchant-ac-name">${escapeHtml(s.name)}</span>
+          ${meta ? `<span class="merchant-ac-meta">${escapeHtml(meta)}</span>` : ''}
+        </button>`;
+      }).join('');
+
+      listEl.querySelectorAll('.merchant-ac-item').forEach(btn => {
+        btn.onmousedown = (e) => {
+          e.preventDefault();
+        };
+        btn.onclick = () => {
+          const chosenName = btn.getAttribute('data-name') || '';
+          const chosenCat = btn.getAttribute('data-category') || '';
+          const chosenPay = btn.getAttribute('data-payment') || '';
+          inputEl.value = chosenName;
+          listEl.classList.remove('open');
+          if (typeof onSelectCb === 'function') {
+            onSelectCb({ name: chosenName, category: chosenCat, payment: chosenPay });
+          }
+        };
+      });
+
+      listEl.classList.add('open');
+    }
+
+    function closeAllMerchantAutocomplete() {
+      document.querySelectorAll('.merchant-ac-list').forEach(el => {
+        el.classList.remove('open');
+      });
+    }
+
+    function setupMerchantAutocomplete(inputId, listId, getTypeFn, catSelectId, payGroupSelectId, paySubSelectId) {
+      const inputEl = document.getElementById(inputId);
+      const listEl = document.getElementById(listId);
+      if (!inputEl || !listEl) return;
+
+      const onPicked = ({ category, payment }) => {
+        if (category && catSelectId) {
+          const catEl = document.getElementById(catSelectId);
+          if (catEl && Array.from(catEl.options).some(opt => opt.value === category)) {
+            catEl.value = category;
+          }
+        }
+        if (payment && getTypeFn() === 'expense' && payGroupSelectId && paySubSelectId) {
+          const parsed = parsePaymentString(payment);
+          const grpEl = document.getElementById(payGroupSelectId);
+          const subEl = document.getElementById(paySubSelectId);
+          if (grpEl) grpEl.value = parsed.group;
+          if (subEl) fillSubSelect(subEl, parsed.group, parsed.sub);
+        }
+      };
+
+      inputEl.addEventListener('focus', () => {
+        renderMerchantAutocomplete(inputEl, listEl, getTypeFn, onPicked);
+      });
+      inputEl.addEventListener('input', () => {
+        renderMerchantAutocomplete(inputEl, listEl, getTypeFn, onPicked);
+      });
+      inputEl.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (document.activeElement !== inputEl && !listEl.contains(document.activeElement)) {
+            listEl.classList.remove('open');
+          }
+        }, 120);
+      });
     }
 
     /* ===== 분류 정규화 ===== */
@@ -1823,6 +1977,7 @@
     /* ===== 추가 모달 수입/지출 전환 ===== */
     function setAddType(type) {
       addEntryType = type;
+      closeAllMerchantAutocomplete();
       document.querySelectorAll('#addTypeToggle .type-btn').forEach(btn=>{
         btn.classList.toggle('active', btn.getAttribute('data-type')===type);
       });
@@ -1859,6 +2014,7 @@
     }
 
     function closeModal(modalId) {
+      closeAllMerchantAutocomplete();
       document.getElementById(modalId).classList.remove('open');
     }
 
@@ -1874,6 +2030,7 @@
     /* ===== 수정 모달 수입/지출 전환 ===== */
     function setEditType(type, keepCategory, keepPayGroup, keepPaySub, keepAuthor) {
       editEntryType = type;
+      closeAllMerchantAutocomplete();
       document.querySelectorAll('#editTypeToggle .type-btn').forEach(btn=>{
         btn.classList.toggle('active', btn.getAttribute('data-type')===type);
       });
@@ -2913,6 +3070,9 @@
     setupBackdropDismiss('settingsModal', closeSettingsModal);
 
     /* ===== 이벤트 바인딩 ===== */
+    setupMerchantAutocomplete('merchant', 'merchantAcList', () => addEntryType, 'category', 'paymentGroup', 'paymentSub');
+    setupMerchantAutocomplete('editMerchant', 'editMerchantAcList', () => editEntryType, 'editCategory', 'editPaymentGroup', 'editPaymentSub');
+
     document.querySelectorAll('#addTypeToggle .type-btn').forEach(btn=>{
       btn.onclick=()=>setAddType(btn.getAttribute('data-type'));
     });
